@@ -1,2 +1,2 @@
 # komitoto
-A vim-like TUI assistant for HAM
+`コミとと is a vim-like TUI assistant for HAM.`
