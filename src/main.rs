@@ -333,7 +333,7 @@ fn run_log(action: LogAction) -> Result<(), Box<dyn Error>> {
             name,
             comment,
             json,
-        } => add_qso(&service, call, freq, mode, date, time, now, rst_sent, rst_rcvd, 
+        } => add_qso(&service, call, freq, mode, date, time, now, rst_sent, rst_rcvd,
                    grid, qth, rig, name, comment, json),
 
         LogAction::List { limit, json } => list_qsos(&service, limit, json),
@@ -352,7 +352,7 @@ fn run_log(action: LogAction) -> Result<(), Box<dyn Error>> {
             rig,
             name,
             comment,
-        } => update_qso(&service, id, call, freq, mode, rst_sent, rst_rcvd, 
+        } => update_qso(&service, id, call, freq, mode, rst_sent, rst_rcvd,
                        grid, qth, rig, name, comment),
 
         LogAction::Delete { id } => delete_qso(&service, id),
@@ -382,7 +382,7 @@ fn run_calc(action: CalcAction) -> Result<(), Box<dyn Error>> {
             let output = SunriseFormatter::format_sunrise(&date, lat, lon, altitude, &times, json)?;
             println!("{}", output);
         }
-        
+
         CalcAction::Distance { from_lat, from_lon, to_lat, to_lon, unit, json } => {
             let meters = calc::geo::calc_distance(from_lat, from_lon, to_lat, to_lon)?;
             let (value, unit_name) = match unit.to_lowercase().as_str() {
@@ -390,7 +390,7 @@ fn run_calc(action: CalcAction) -> Result<(), Box<dyn Error>> {
                 "km" | "kilometers" => (meters / 1000.0, "km"),
                 _ => return Err("Unit must be 'km' or 'miles'".into()),
             };
-            
+
             if json {
                 println!("{{");
                 println!("  \"from\": {{ \"lat\": {}, \"lon\": {} }},", from_lat, from_lon);
@@ -398,12 +398,12 @@ fn run_calc(action: CalcAction) -> Result<(), Box<dyn Error>> {
                 println!("  \"distance_{}\": {:.2}", unit_name, value);
                 println!("}}");
             } else {
-                println!("Distance from ({}, {}) to ({}, {}): {:.2} {}", 
+                println!("Distance from ({}, {}) to ({}, {}): {:.2} {}",
                     from_lat, from_lon, to_lat, to_lon, value, unit_name);
             }
         }
     }
-    
+
     Ok(())
 }
 
@@ -450,7 +450,7 @@ fn add_qso(
         let mut qso = qsos.remove(0);
 
         // Allow CLI options to override JSON values
-        if let Some(v) = call { qso.call = v; }
+        if let Some(v) = call { qso.call = v.to_uppercase(); }
         if let Some(v) = freq { qso.freq = v; qso.band = types::Band::from_freq_mhz(v); }
         if let Some(v) = mode {
             qso.mode = types::Mode::from_str(&v).ok_or_else(|| format!("Unknown mode: {}", v))?;
@@ -466,7 +466,7 @@ fn add_qso(
         qso
     } else {
         // Validate required fields
-        let call = call.ok_or("--call is required when not using --json")?;
+        let call = call.ok_or("--call is required when not using --json")?.to_uppercase();
         let freq = freq.ok_or("--freq is required when not using --json")?;
         let mode_str = mode.ok_or("--mode is required when not using --json")?;
         let mode_val = types::Mode::from_str(&mode_str)
@@ -517,7 +517,7 @@ fn list_qsos(service: &QsoService, limit: u32, json: bool) -> Result<(), Box<dyn
 fn get_qso(service: &QsoService, id: String, json: bool) -> Result<(), Box<dyn Error>> {
     // First try exact match
     let qso_opt = service.get_qso(&id)?;
-    
+
     let qso_result: Result<Qso, Box<dyn Error>> = if let Some(qso) = qso_opt {
         Ok(qso)
     } else {
@@ -526,7 +526,7 @@ fn get_qso(service: &QsoService, id: String, json: bool) -> Result<(), Box<dyn E
         let matches: Vec<&Qso> = all_qsos.iter()
             .filter(|qso| qso.id.starts_with(&id))
             .collect();
-        
+
         match matches.len() {
             1 => Ok(matches[0].clone()),
             0 => Err(format!("QSO not found with ID '{}' or prefix '{}'", id, id).into()),
@@ -575,7 +575,7 @@ fn update_qso(
             let matches: Vec<&Qso> = all_qsos.iter()
                 .filter(|qso| qso.id.starts_with(&id))
                 .collect();
-            
+
             match matches.len() {
                 0 => return Err(format!("QSO not found with ID '{}' or prefix '{}'", id, id).into()),
                 1 => matches[0].clone(),
@@ -613,7 +613,7 @@ fn update_qso(
 fn delete_qso(service: &QsoService, id: String) -> Result<(), Box<dyn Error>> {
     // Try exact match first
     let deleted = service.delete_qso(&id)?;
-    
+
     if deleted {
         println!("QSO deleted: {}", id);
     } else {
@@ -622,7 +622,7 @@ fn delete_qso(service: &QsoService, id: String) -> Result<(), Box<dyn Error>> {
         let matches: Vec<&Qso> = all_qsos.iter()
             .filter(|qso| qso.id.starts_with(&id))
             .collect();
-        
+
         match matches.len() {
             0 => eprintln!("QSO not found with ID '{}' or prefix '{}'", id, id),
             1 => {
@@ -735,7 +735,7 @@ fn run_logbook(action: LogbookAction) -> Result<(), Box<dyn Error>> {
         LogbookAction::Use { file } => {
             // Check if it's a database file
             let logbook_to_use: std::path::PathBuf;
-            
+
             if file.ends_with(".db") || file.ends_with(".sqlite") || file.ends_with(".sqlite3") {
                 if !std::path::Path::new(&file).exists() {
                     return Err(format!("File not found: {}", file).into());
@@ -749,9 +749,9 @@ fn run_logbook(action: LogbookAction) -> Result<(), Box<dyn Error>> {
                     .to_string_lossy()
                     .into_owned();
                 let temp_db: String = format!("{}_temp.db", base_name);
-                
+
                 println!("Importing {} to temporary database...", file);
-                
+
                 let fmt = detect_format_by_ext(&file);
                 let qsos = match fmt.as_str() {
                     "adi" | "adif" => {
@@ -773,22 +773,22 @@ fn run_logbook(action: LogbookAction) -> Result<(), Box<dyn Error>> {
                     }
                     _ => return Err(format!("Unsupported format for import: {}", fmt).into()),
                 };
-                
+
                 convert::qsos_to_sqlite(&qsos, &temp_db)?;
-                
+
                 println!("Created temporary database: {} with {} QSOs", temp_db, qsos.len());
                 logbook_to_use = std::path::PathBuf::from(temp_db);
             }
-            
+
             unsafe {
                 std::env::set_var("KOMITOTO_LOGBOOK", logbook_to_use.to_str().unwrap_or(""));
             }
             Ok(())
         }
-        
+
         LogbookAction::List => {
             println!("Available logbooks in current directory:");
-            
+
             let entries = std::fs::read_dir(".")?;
             let mut files: Vec<_> = entries
                 .filter_map(|e| e.ok())
@@ -799,21 +799,21 @@ fn run_logbook(action: LogbookAction) -> Result<(), Box<dyn Error>> {
                 })
                 .map(|e| e.path())
                 .collect();
-            
+
             files.sort();
-            
+
             // Fix ownership issue - use references instead of moving
             for path in &files {
                 if path.file_name().map_or(false, |n| n != "komitoto.db") {
                     println!("  - {}", path.display());
                 }
             }
-            
+
             println!("  - komitoto.db (default)");
             if files.is_empty() {
                 println!("\nNo additional logbooks found. Run 'komitoto log import <file>' to add one.");
             }
-            
+
             Ok(())
         }
     }
