@@ -1,0 +1,11 @@
+[package]
+name = "komitoto-formatter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+sunrise = { workspace = true }
+komitoto-types = { path = "../komitoto-types" }
+komitoto-calc = { path = "../komitoto-calc" }

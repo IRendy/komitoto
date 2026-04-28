@@ -1,0 +1,10 @@
+[package]
+name = "komitoto-convert"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { workspace = true }
+rusqlite = { workspace = true }
+serde_json = { workspace = true }
+komitoto-types = { path = "../komitoto-types" }

@@ -1,6 +1,6 @@
 use std::error::Error;
-use crate::db::Database;
-use crate::types::*;
+use komitoto_db::Database;
+use komitoto_types::*;
 
 /// QSO Logbook Service - handles all logbook business logic
 pub struct QsoService {
@@ -57,17 +57,20 @@ impl QsoService {
         Ok(self.db.get_all_qsos()?)
     }
 
+    #[allow(dead_code)]
     /// Parse frequency and automatically detect band
     pub fn parse_freq_with_band(freq: f64) -> (f64, Option<Band>) {
         let band = Band::from_freq_mhz(freq);
         (freq, band)
     }
 
+    #[allow(dead_code)]
     /// Validate mode string
     pub fn validate_mode(mode_str: &str) -> Result<Mode, String> {
         Mode::from_str(mode_str).ok_or_else(|| format!("Unknown mode: {}", mode_str))
     }
 
+    #[allow(dead_code)]
     /// Parse RST string to integer (for numeric RST values like 59, 57)
     pub fn parse_rst(rst_str: &str) -> Option<i32> {
         rst_str.parse::<i32>().ok()

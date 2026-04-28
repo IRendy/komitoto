@@ -35,14 +35,12 @@ impl ConfigFile {
             println!("\nEdit it manually or use 'komitoto config show' to view current values.");
             Ok(())
         } else {
-            // Copy from example
             let example_file = "komitoto.toml.example";
             if std::path::Path::new(example_file).exists() {
                 std::fs::copy(example_file, config_file)?;
                 println!("Created {} from example file", config_file);
                 println!("\nPlease edit {} and set your information.", config_file);
             } else {
-                // Create with defaults
                 let config = Self::default();
                 let content = toml::to_string_pretty(&config)?;
                 std::fs::write(config_file, content)?;

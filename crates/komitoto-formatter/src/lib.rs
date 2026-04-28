@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc, TimeZone};
-use crate::types::Qso;
-use crate::calc::sunrise::SunTimes;
+use komitoto_types::Qso;
+use komitoto_calc::sunrise::SunTimes;
 
 /// Formatter for sunrise calculation results
 pub struct SunriseFormatter;

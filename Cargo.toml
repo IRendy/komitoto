@@ -1,16 +1,42 @@
+[workspace]
+members = [
+    "crates/komitoto-types",
+    "crates/komitoto-calc",
+    "crates/komitoto-db",
+    "crates/komitoto-service",
+    "crates/komitoto-convert",
+    "crates/komitoto-formatter",
+    "crates/komitoto-config",
+    "crates/komitoto-sstv",
+]
+
+[workspace.dependencies]
+chrono = { version = "^0.4.44", features = ["serde"] }
+chrono-tz = "^0.10.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.34", features = ["bundled"] }
+uuid = { version = "1", features = ["v4"] }
+toml = "0.8"
+geo = "^0.33.1"
+lazy_static = "1.5.0"
+sunrise = "3.0.0"
+image = "0.25"
+hound = "3.5"
+
 [package]
 name = "komitoto"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-chrono = { version = "^0.4.44", features = ["serde"] }
-chrono-tz = "^0.10.0"
 clap = { version = "4.6.1", features = ["derive"] }
-sunrise = "3.0.0"
-geoutils = "^0.5.1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-rusqlite = { version = "0.34", features = ["bundled"] }
-uuid = { version = "1", features = ["v4"] }
-toml = "0.8"
+chrono = { workspace = true }
+komitoto-types = { path = "crates/komitoto-types" }
+komitoto-calc = { path = "crates/komitoto-calc" }
+komitoto-db = { path = "crates/komitoto-db" }
+komitoto-service = { path = "crates/komitoto-service" }
+komitoto-convert = { path = "crates/komitoto-convert" }
+komitoto-formatter = { path = "crates/komitoto-formatter" }
+komitoto-config = { path = "crates/komitoto-config" }
+komitoto-sstv = { path = "crates/komitoto-sstv" }

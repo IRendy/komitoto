@@ -1,6 +1,6 @@
 use rusqlite::{params, Connection, Result as SqlResult};
 use chrono::{DateTime, Utc};
-use crate::types::*;
+use komitoto_types::*;
 
 const DB_PATH: &str = "komitoto.db";
 

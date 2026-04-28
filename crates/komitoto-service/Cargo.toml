@@ -1,0 +1,8 @@
+[package]
+name = "komitoto-service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+komitoto-db = { path = "../komitoto-db" }
+komitoto-types = { path = "../komitoto-types" }

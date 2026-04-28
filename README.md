@@ -652,6 +652,298 @@ komitoto calc distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 -
 }
 ```
 
+#### `komitoto calc zone`
+
+计算指定坐标的 CQ 分区和 ITU 分区。
+
+```bash
+komitoto calc zone [OPTIONS] --lat <LAT> --lon <LON>
+```
+
+选项：
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `--lat` | 纬度（十进制度数，正值为北纬）**必填** | - |
+| `--lon` | 经度（十进制度数，正值为东经）**必填** | - |
+| `--json` | 以 JSON 格式输出 | 否 |
+
+示例：
+
+```bash
+# 查询北京的分区
+komitoto calc zone --lat 39.9042 --lon 116.4074
+Location: (39.9042, 116.4074)
+CQ Zone: 24
+ITU Zone: 44
+
+# 查询香港的分区
+komitoto calc zone --lat 22.3193 --lon 114.1694
+Location: (22.3193, 114.1694)
+CQ Zone: 24
+ITU Zone: 44
+
+# JSON 输出
+komitoto calc zone --lat 39.9042 --lon 116.4074 --json
+{
+  "location": { "lat": 39.9042, "lon": 116.4074 },
+  "cq_zone": { "type": "CQ", "number": 24 },
+  "itu_zone": { "type": "ITU", "number": 44 }
+}
+```
+
+---
+
+#### `komitoto calc coordinate`
+
+在 Maidenhead 网格定位和经纬度之间互相转换。
+
+```bash
+komitoto calc coordinate [OPTIONS]
+```
+
+选项：
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `--from` | 输入格式：`grid` 或 `latlon`（可自动推断） | 自动推断 |
+| `--to` | 输出格式：`grid` 或 `latlon`（可自动推断） | 自动推断 |
+| `--lat` | 纬度（十进制度数，正值为北纬） | - |
+| `--lon` | 经度（十进制度数，正值为东经） | - |
+| `--input` | 输入值（网格如 `OL82tk` 或坐标如 `39.9042,116.4074`） | - |
+| `--precision` | 网格精度：2, 4, 6, 8 或 10 | 6 |
+| `--json` | 以 JSON 格式输出 | 否 |
+
+支持多种输入方式：
+- 经纬度转网格：`--lat/--lon` 或 `--input "lat,lon"`
+- 网格转经纬度：`--input GRID`
+
+示例：
+
+```bash
+# 北京经纬转网格（默认 6 字符精度）
+komitoto calc coordinate --lat 39.9042 --lon 116.4074
+Input: (39.9042, 116.4074)
+Grid: OM89ev
+
+# 使用 input 参数
+komitoto calc coordinate --input "39.9042,116.4074"
+Input: (39.9042, 116.4074)
+Grid: OM89ev
+
+# 网格转经纬度
+komitoto calc coordinate --input OL82tk
+Input: OL82tk
+Latitude: 22.4375
+Longitude: 117.625
+
+# 不同精度
+komitoto calc coordinate --lat 39.9042 --lon 116.4074 --precision 4
+Input: (39.9042, 116.4074)
+Grid: OM89
+
+komitoto calc coordinate --lat 39.9042 --lon 116.4074 --precision 2
+Input: (39.9042, 116.4074)
+Grid: OM
+
+# JSON 输出
+komitoto calc coordinate --lat 39.9042 --lon 116.4074 --json
+{
+  "latitude": 39.9042,
+  "longitude": 116.4074,
+  "grid": "OM89ev"
+}
+
+komitoto calc coordinate --input OL82tk --json
+{
+  "input": "OL82tk",
+  "latitude": 22.4375,
+  "longitude": 117.625
+}
+
+# 显式指定转换方向
+komitoto calc coordinate --from grid --to latlon --input OL82tk
+komitoto calc coordinate --from latlon --to grid --lat 39.9042 --lon 116.4074
+```
+
+#### `komitoto calc sstv` — SSTV 慢扫描电视
+
+将图像编码为 SSTV 音频，或将 SSTV 音频解码为图像。支持 14 种 SSTV 模式。
+
+**命令：**
+
+| 子命令 | 说明 |
+|--------|------|
+| `encode` | 将图像编码为 SSTV 音频 (WAV) |
+| `decode` | 将 SSTV 音频解码为图像 |
+| `info`   | 显示指定 SSTV 模式的详细信息 |
+| `list`   | 列出所有支持的 SSTV 模式 |
+
+**支持的 SSTV 模式 (14 种)：**
+
+| 模式 | 分辨率 | 时长 | 说明 |
+|------|--------|------|------|
+| Martin M1 | 320×256 | ~113s | 最常用的 HF SSTV 模式 |
+| Martin M2 | 320×256 | ~57s | M1 的半速版本 |
+| Scottie S1 | 320×256 | ~112s | 另一种常用模式 |
+| Scottie S2 | 320×256 | ~71s | S1 的较短版本 |
+| Robot 36 | 320×240 | ~44s | YUV 色彩空间，NTSC 风格 |
+| Robot 72 | 320×240 | ~72s | 更高质量的 Robot |
+| PD 50/90/120/180/240/290 | 320×256 | 可变 | 双音同步模式 |
+| AVT 90/120 | 320×256 | 可变 | VOX 友好的双音模式 |
+
+**示例：**
+
+```bash
+# 将图像编码为 SSTV 音频 (默认 Martin M1, fit 缩放)
+komitoto calc sstv encode photo.png
+
+# 指定模式、裁剪策略和输出文件
+komitoto calc sstv encode photo.png -m scotties1 -s crop -o tx.wav
+
+# 将 SSTV WAV 音频解码为图像
+komitoto calc sstv decode received.wav -m martinm1
+
+# 将 SSTV MP3 音频解码为图像 (自动重采样)
+komitoto calc sstv decode received.mp3 -m martinm1 -o decoded.png
+
+# 查看模式信息
+komitoto calc sstv info pd90
+Mode: PD 90
+Resolution: 320x256
+Sample rate: 11025 Hz
+Encoding: ~105 seconds for a full image
+
+# 列出所有模式
+komitoto calc sstv list
+
+# 转换为 MP3 (使用 ffmpeg)
+komitoto calc sstv encode photo.png -o photo.wav
+ffmpeg -i photo.wav -codec:a libmp3lame -qscale:a 2 photo.mp3
+```
+
+**完整案例（含输出）：**
+
+```bash
+# 1. 列出所有支持的 SSTV 模式
+$ komitoto calc sstv list
+Supported SSTV modes:
+  Martin M1 (320x256)
+  Martin M2 (320x256)
+  Scottie S1 (320x256)
+  Scottie S2 (320x256)
+  Robot 36 (320x240)
+  Robot 72 (320x240)
+  PD 50 (320x256)
+  PD 90 (320x256)
+  PD 120 (320x256)
+  PD 180 (320x256)
+  PD 240 (320x256)
+  PD 290 (320x256)
+  AVT 90 (320x256)
+  AVT 120 (320x256)
+
+# 2. 使用 Martin M1 编码图像（最常用的 HF 模式）
+$ komitoto calc sstv encode cq.png -m m1 -o cq_m1.wav
+SSTV audio generated: cq_m1.wav
+  Mode: Martin M1
+  Resolution: 320x256
+  Image: cq.png
+  Resize: fit
+
+# 3. 使用 Robot 36 编码（快速模式，YUV 色彩）
+$ komitoto calc sstv encode photo.jpg -m r36 -o fast.wav
+SSTV audio generated: fast.wav
+  Mode: Robot 36
+  Resolution: 320x240
+  Image: photo.jpg
+  Resize: fit
+
+# 4. 使用 Scottie S1 + crop 策略（裁剪图像适应 320×256）
+$ komitoto calc sstv encode wide.png -m s1 -s crop -o scottie.wav
+SSTV audio generated: scottie.wav
+  Mode: Scottie S1
+  Resolution: 320x256
+  Image: wide.png
+  Resize: crop
+
+# 5. 使用 PD 90 编码（双音同步模式）
+$ komitoto calc sstv encode photo.png -m pd90 -o pd90.wav
+SSTV audio generated: pd90.wav
+  Mode: PD 90
+  Resolution: 320x256
+  Image: photo.png
+  Resize: fit
+
+# 6. 解码 WAV 音频
+$ komitoto calc sstv decode cq_m1.wav -m m1 -o decoded.png
+SSTV decoded: decoded.png
+  Mode: Martin M1
+  Resolution: 320x256
+  Audio: cq_m1.wav
+
+# 7. 解码 MP3 音频（自动重采样 44100→11025 Hz）
+$ komitoto calc sstv decode received.mp3 -m m1 -o from_mp3.png
+SSTV decoded: from_mp3.png
+  Mode: Martin M1
+  Resolution: 320x256
+  Audio: received.mp3
+
+# 8. 批量编码不同模式
+$ for m in m1 m2 s1 s2 r36; do
+    komitoto calc sstv encode test.png -m $m -o test_$m.wav
+  done
+
+# 9. 编码后转换为 MP3 传输
+$ komitoto calc sstv encode photo.png -m m1 -o photo.wav
+$ ffmpeg -i photo.wav -codec:a libmp3lame -qscale:a 2 photo.mp3
+
+# 10. 错误处理示例
+
+# 文件不存在
+$ komitoto calc sstv encode missing.png -m m1
+Error: Image file not found: missing.png
+
+# 不支持的图像格式
+$ komitoto calc sstv encode doc.txt -m m1
+Error: Unsupported image format: txt (supported: png, jpg, jpeg, bmp, gif, webp, tiff, tif)
+
+# 不支持的音频格式
+$ komitoto calc sstv decode audio.flac -m m1
+Error: Unsupported audio format: flac (supported: wav, mp3)
+
+# 无效模式
+$ komitoto calc sstv encode photo.png -m badmode
+Error: Unknown SSTV mode: 'badmode'. Use --list to see available modes.
+```
+
+**常用场景：**
+
+| 场景 | 推荐模式 | 命令 |
+|------|----------|------|
+| HF 通联（高质量） | Martin M1 | `komitoto calc sstv encode photo.png -m m1` |
+| HF 通联（快速） | Martin M2 | `komitoto calc sstv encode photo.png -m m2` |
+| VHF/UHF 通联 | Robot 36 | `komitoto calc sstv encode photo.png -m r36` |
+| 宽频带、高质量 | PD 90/120 | `komitoto calc sstv encode photo.png -m pd90` |
+| VOX 操作 | AVT 90/120 | `komitoto calc sstv encode photo.png -m avt90` |
+
+**encode 选项：**
+
+| 选项 | 简写 | 默认值 | 说明 |
+|------|------|--------|------|
+| `<image>` | | (必需) | 输入图像文件 (png, jpg, bmp, gif, webp, tiff) |
+| `--output` | `-o` | `<image_stem>.wav` | 输出 WAV 文件路径 |
+| `--mode` | `-m` | `martinm1` | SSTV 模式 (如 m1, s1, r36, pd90) |
+| `--strategy` | `-s` | `fit` | 图像处理策略: crop, fit, stretch |
+
+**decode 选项：**
+
+| 选项 | 简写 | 默认值 | 说明 |
+|------|------|--------|------|
+| `<audio>` | | (必需) | 输入音频文件 (wav, mp3) |
+| `--output` | `-o` | `<audio_stem>.png` | 输出图像文件路径 |
+| `--mode` | `-m` | `martinm1` | SSTV 模式 (或 auto) |
+
 ---
 
 ## 工作流程示例
@@ -768,9 +1060,10 @@ komitoto log search --call "BI3*"
 - **serde + serde_json** - JSON 序列化
 - **toml 0.8** - TOML 配置文件解析
 - **chrono-tz** - 时区处理
-- **geoutils** - 地理距离计算
+- **geo** - 地理距离计算（VincentyDistance）和区域查找
 - **sunrise** - 天文计算
 - **uuid** - UUID 生成
+- **lazy_static** - 全局变量缓存
 
 ---
 

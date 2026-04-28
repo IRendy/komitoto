@@ -1,18 +1,11 @@
 use clap::{Parser, Subcommand};
 use std::error::Error;
-use crate::types::Qso;
-
-mod calc;
-mod config;
-mod config_handler;
-mod convert;
-mod db;
-mod formatter;
-mod service;
-mod types;
-
-use crate::formatter::{parse_datetime, SunriseFormatter};
-use crate::service::QsoService;
+use komitoto_types::{Band, Mode, Qso};
+use komitoto_calc::{sunrise, geo, maidenhead};
+use komitoto_service::QsoService;
+use komitoto_config::ConfigFile;
+use komitoto_formatter::{parse_datetime, SunriseFormatter, QsoFormatter, parse_dawn_type};
+use komitoto_convert::*;
 
 #[derive(Parser)]
 #[command(name = "komitoto")]
@@ -293,6 +286,96 @@ enum CalcAction {
         #[arg(short, long)]
         json: bool,
     },
+    /// Find CQ and ITU zone for a coordinate
+    Zone {
+        /// Latitude (decimal degrees, positive = North)
+        #[arg(long)]
+        lat: f64,
+
+        /// Longitude (decimal degrees, positive = East)
+        #[arg(long)]
+        lon: f64,
+
+        /// Output as JSON
+        #[arg(short, long)]
+        json: bool,
+    },
+    /// Convert between Maidenhead grid locator and latitude/longitude
+    Coordinate {
+        /// Input format: "grid" or "latlon" (auto-detected if not specified)
+        #[arg(long)]
+        from: Option<String>,
+
+        /// Output format: "grid" or "latlon" (auto-detected if not specified)
+        #[arg(long)]
+        to: Option<String>,
+
+        /// Latitude (decimal degrees, positive = North)
+        #[arg(long)]
+        lat: Option<f64>,
+
+        /// Longitude (decimal degrees, positive = East)
+        #[arg(long)]
+        lon: Option<f64>,
+
+        /// Input value (grid string like "OL82tk" or coordinates like "39.9042,116.4074")
+        #[arg(long)]
+        input: Option<String>,
+
+        /// Grid precision: 2, 4, 6, 8, or 10 (default: 6)
+        #[arg(long, default_value = "6")]
+        precision: usize,
+
+        /// Output as JSON
+        #[arg(short, long)]
+        json: bool,
+    },
+    /// Generate or decode SSTV (Slow-Scan Television) audio
+    Sstv {
+        #[command(subcommand)]
+        action: SstvAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum SstvAction {
+    /// Encode an image to SSTV audio
+    Encode {
+        /// Input image file (PNG, JPEG, BMP, GIF, etc.)
+        image: String,
+
+        /// Output WAV file path (default: <image_name>.wav)
+        #[arg(short, long)]
+        output: Option<String>,
+
+        /// SSTV mode (default: martinm1)
+        #[arg(short, long, default_value = "martinm1")]
+        mode: String,
+
+        /// Image resize strategy: crop, fit, stretch (default: fit)
+        #[arg(short, long, default_value = "fit")]
+        strategy: String,
+    },
+    /// Decode SSTV audio to an image
+    Decode {
+        /// Input WAV file
+        wav: String,
+
+        /// Output image file (default: <wav_name>.png)
+        #[arg(short, long)]
+        output: Option<String>,
+
+        /// SSTV mode: martinm1 or auto (default: martinm1)
+        #[arg(short, long, default_value = "martinm1")]
+        mode: String,
+    },
+    /// Show SSTV mode details
+    Info {
+        /// SSTV mode name
+        mode: String,
+    },
+    /// List all supported SSTV modes
+    List,
 }
 
 fn main() {
@@ -370,9 +453,9 @@ fn run_calc(action: CalcAction) -> Result<(), Box<dyn Error>> {
     match action {
         CalcAction::Sunrise { lat, lon, date, altitude, dawn, json } => {
             let date = date.unwrap_or_else(|| chrono::Utc::now().format("%Y%m%d").to_string());
-            let dawn_type = formatter::parse_dawn_type(dawn.as_deref())?;
+            let dawn_type = parse_dawn_type(dawn.as_deref())?;
             use chrono::NaiveDate;
-            let times = calc::sunrise::calc_sunrise(
+            let times = sunrise::calc_sunrise(
                 NaiveDate::parse_from_str(&date, "%Y%m%d")?,
                 lat,
                 lon,
@@ -384,7 +467,21 @@ fn run_calc(action: CalcAction) -> Result<(), Box<dyn Error>> {
         }
 
         CalcAction::Distance { from_lat, from_lon, to_lat, to_lon, unit, json } => {
-            let meters = calc::geo::calc_distance(from_lat, from_lon, to_lat, to_lon)?;
+            let meters = match geo::calc_distance(from_lat, from_lon, to_lat, to_lon) {
+                Ok(m) => m,
+                Err(e) => {
+                    if json {
+                        println!("{{");
+                        println!("  \"from\": {{ \"lat\": {}, \"lon\": {} }},", from_lat, from_lon);
+                        println!("  \"to\": {{ \"lat\": {}, \"lon\": {} }},", to_lat, to_lon);
+                        println!("  \"error\": \"{}\"", e);
+                        println!("}}");
+                    } else {
+                        eprintln!("Error calculating distance: {}", e);
+                    }
+                    return Ok(());
+                }
+            };
             let (value, unit_name) = match unit.to_lowercase().as_str() {
                 "mile" | "miles" => (meters / 1609.344, "miles"),
                 "km" | "kilometers" => (meters / 1000.0, "km"),
@@ -400,6 +497,203 @@ fn run_calc(action: CalcAction) -> Result<(), Box<dyn Error>> {
             } else {
                 println!("Distance from ({}, {}) to ({}, {}): {:.2} {}",
                     from_lat, from_lon, to_lat, to_lon, value, unit_name);
+            }
+        }
+
+        CalcAction::Zone { lat, lon, json } => {
+            let finder = geo::get_zone_finder();
+            
+            if let Some((cq_type, cq_num, itu_type, itu_num)) = finder.find_zone(lat, lon) {
+                if json {
+                    println!("{{");
+                    println!("  \"location\": {{ \"lat\": {}, \"lon\": {} }},", lat, lon);
+                    println!("  \"cq_zone\": {{ \"type\": \"{}\", \"number\": {} }},", cq_type, cq_num);
+                    println!("  \"itu_zone\": {{ \"type\": \"{}\", \"number\": {} }}", itu_type, itu_num);
+                    println!("}}");
+                } else {
+                    println!("Location: ({}, {})", lat, lon);
+                    println!("CQ Zone: {}", cq_num);
+                    println!("ITU Zone: {}", itu_num);
+                }
+            } else {
+                println!("No zones found for location: ({}, {})", lat, lon);
+            }
+        }
+
+        CalcAction::Coordinate { from, to: _, lat, lon, input, precision, json } => {
+            
+            // Determine conversion direction
+            let is_grid_to_latlon = if let Some(ref from_type) = from {
+                from_type.to_lowercase() == "grid"
+            } else if let Some(ref input_str) = input {
+                // Auto-detect: if starts with letter, it's a grid
+                input_str.chars().next().map_or(false, |c| c.is_ascii_alphabetic())
+            } else {
+                // Default: latlon to grid
+                false
+            };
+            
+            if is_grid_to_latlon {
+                // Grid → Lat/Lon
+                let grid = input.ok_or("--input is required for grid to lat/lon conversion")?;
+                let (lat, lon) = maidenhead::from_maidenhead(&grid)?;
+                
+                if json {
+                    println!("{{");
+                    println!("  \"input\": \"{}\",", grid);
+                    println!("  \"latitude\": {},", lat);
+                    println!("  \"longitude\": {}", lon);
+                    println!("}}");
+                } else {
+                    println!("Input: {}", grid);
+                    println!("Latitude: {}", lat);
+                    println!("Longitude: {}", lon);
+                }
+            } else {
+                // Lat/Lon → Grid
+                let (lat, lon) = if let (Some(lat), Some(lon)) = (lat, lon) {
+                    (lat, lon)
+                } else if let Some(ref input_str) = input {
+                    // Parse "lat,lon" format
+                    let parts: Vec<&str> = input_str.split(',').collect();
+                    if parts.len() != 2 {
+                        return Err("Coordinates must be in 'lat,lon' format".into());
+                    }
+                    let lat: f64 = parts[0].trim().parse()
+                        .map_err(|_| "Invalid latitude")?;
+                    let lon: f64 = parts[1].trim().parse()
+                        .map_err(|_| "Invalid longitude")?;
+                    (lat, lon)
+                } else {
+                    return Err("Either --lat/--lon or --input is required for lat/lon to grid conversion".into());
+                };
+                
+                let grid = maidenhead::to_maidenhead(lat, lon, precision)?;
+                
+                if json {
+                    println!("{{");
+                    println!("  \"latitude\": {},", lat);
+                    println!("  \"longitude\": {},", lon);
+                    println!("  \"grid\": \"{}\"", grid);
+                    println!("}}");
+                } else {
+                    println!("Input: ({}, {})", lat, lon);
+                    println!("Grid: {}", grid);
+                }
+            }
+        }
+
+        CalcAction::Sstv { action } => {
+            use komitoto_sstv::{SstvEncoder, SstvDecoder, SstvMode, image_proc::ResizeStrategy};
+
+            match action {
+                SstvAction::Encode { image, output, mode, strategy } => {
+                    // Validate input file exists
+                    if !std::path::Path::new(&image).exists() {
+                        return Err(format!("Image file not found: {}", image).into());
+                    }
+                    // Validate image format
+                    let img_ext = std::path::Path::new(&image)
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .map(|e| e.to_lowercase())
+                        .unwrap_or_default();
+                    let supported_img = ["png", "jpg", "jpeg", "bmp", "gif", "webp", "tiff", "tif"];
+                    if !supported_img.contains(&img_ext.as_str()) {
+                        return Err(format!(
+                            "Unsupported image format: {} (supported: {})",
+                            img_ext,
+                            supported_img.join(", ")
+                        ).into());
+                    }
+
+                    let sstv_mode = SstvMode::from_str(&mode)
+                        .ok_or_else(|| format!("Unknown SSTV mode: '{}'. Use --list to see available modes.", mode))?;
+                    let resize_strategy = strategy.parse::<ResizeStrategy>()
+                        .map_err(|e| -> Box<dyn Error> { e.into() })?;
+
+                    let encoder = SstvEncoder::new(sstv_mode);
+
+                    let wav_path = output.unwrap_or_else(|| {
+                        let base = std::path::Path::new(&image)
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("sstv_output");
+                        format!("{}.wav", base)
+                    });
+
+                    encoder.encode_to_wav(&image, &wav_path, resize_strategy)?;
+
+                    let (w, h) = sstv_mode.resolution();
+                    println!("SSTV audio generated: {}", wav_path);
+                    println!("  Mode: {}", sstv_mode.name());
+                    println!("  Resolution: {}x{}", w, h);
+                    println!("  Image: {}", image);
+                    println!("  Resize: {}", strategy);
+                }
+                SstvAction::Decode { wav, output, mode } => {
+                    // Validate input file exists
+                    if !std::path::Path::new(&wav).exists() {
+                        return Err(format!("Audio file not found: {}", wav).into());
+                    }
+                    // Validate audio format
+                    let audio_ext = std::path::Path::new(&wav)
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .map(|e| e.to_lowercase())
+                        .unwrap_or_default();
+                    if !["wav", "mp3"].contains(&audio_ext.as_str()) {
+                        return Err(format!(
+                            "Unsupported audio format: {} (supported: wav, mp3)",
+                            audio_ext
+                        ).into());
+                    }
+
+                    let sstv_mode = if mode.to_lowercase() == "auto" {
+                        SstvMode::MartinM1 // For now, default to M1; future: auto-detect from VIS
+                    } else {
+                        SstvMode::from_str(&mode)
+                            .ok_or_else(|| format!("Unknown SSTV mode: '{}'. Use martinm1 or auto.", mode))?
+                    };
+
+                    let decoder = SstvDecoder::new(sstv_mode);
+
+                    let img_path = output.unwrap_or_else(|| {
+                        let base = std::path::Path::new(&wav)
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("decoded");
+                        format!("{}.png", base)
+                    });
+
+                    decoder.decode_to_file(&wav, &img_path)?;
+
+                    let (w, h) = sstv_mode.resolution();
+                    println!("SSTV decoded: {}", img_path);
+                    println!("  Mode: {}", sstv_mode.name());
+                    println!("  Resolution: {}x{}", w, h);
+                    println!("  Audio: {}", wav);
+                }
+                SstvAction::Info { mode } => {
+                    let sstv_mode = SstvMode::from_str(&mode)
+                        .ok_or_else(|| format!("Unknown SSTV mode: '{}'. Use --list to see available modes.", mode))?;
+                    let (w, h) = sstv_mode.resolution();
+                    use komitoto_sstv::spec::from_mode;
+                    let spec = from_mode(sstv_mode);
+                    let total_samples = spec.total_samples();
+                    let duration_secs = total_samples as f64 / spec.sample_rate() as f64;
+                    println!("Mode: {}", sstv_mode.name());
+                    println!("Resolution: {}x{}", w, h);
+                    println!("Sample rate: {} Hz", spec.sample_rate());
+                    println!("Encoding: ~{:.0} seconds for a full image", duration_secs);
+                }
+                SstvAction::List => {
+                    println!("Supported SSTV modes:");
+                    for m in SstvMode::all() {
+                        let (w, h) = m.resolution();
+                        println!("  {} ({}x{})", m.name(), w, h);
+                    }
+                }
             }
         }
     }
@@ -445,15 +739,15 @@ fn add_qso(
 ) -> Result<(), Box<dyn Error>> {
     let qso = if let Some(json_str) = json {
         // Create QSO from JSON string
-        let mut qsos = convert::json_to_qsos(&json_str)
+        let mut qsos = json_to_qsos(&json_str)
             .map_err(|e| -> Box<dyn Error> { e.into() })?;
         let mut qso = qsos.remove(0);
 
         // Allow CLI options to override JSON values
         if let Some(v) = call { qso.call = v.to_uppercase(); }
-        if let Some(v) = freq { qso.freq = v; qso.band = types::Band::from_freq_mhz(v); }
+        if let Some(v) = freq { qso.freq = v; qso.band = Band::from_freq_mhz(v); }
         if let Some(v) = mode {
-            qso.mode = types::Mode::from_str(&v).ok_or_else(|| format!("Unknown mode: {}", v))?;
+            qso.mode = Mode::from_str(&v).ok_or_else(|| format!("Unknown mode: {}", v))?;
         }
         if let Some(v) = rst_sent { qso.rst_sent = Some(v); }
         if let Some(v) = rst_rcvd { qso.rst_rcvd = Some(v); }
@@ -469,7 +763,7 @@ fn add_qso(
         let call = call.ok_or("--call is required when not using --json")?.to_uppercase();
         let freq = freq.ok_or("--freq is required when not using --json")?;
         let mode_str = mode.ok_or("--mode is required when not using --json")?;
-        let mode_val = types::Mode::from_str(&mode_str)
+        let mode_val = Mode::from_str(&mode_str)
             .ok_or_else(|| format!("Unknown mode: {}", mode_str))?;
 
         // Parse datetime
@@ -481,7 +775,7 @@ fn add_qso(
         };
 
         // Create QSO
-        let mut qso = types::Qso::new(call, freq, mode_val, date_time_on);
+        let mut qso = Qso::new(call, freq, mode_val, date_time_on);
         qso.rst_sent = rst_sent;
         qso.rst_rcvd = rst_rcvd;
         qso.grid = grid;
@@ -505,9 +799,9 @@ fn list_qsos(service: &QsoService, limit: u32, json: bool) -> Result<(), Box<dyn
     let qsos = service.list_qsos(Some(limit))?;
 
     if json {
-        println!("{}", convert::qsos_to_json(&qsos));
+        println!("{}", qsos_to_json(&qsos));
     } else {
-        let output = formatter::QsoFormatter::format_qso_list(&qsos);
+        let output = QsoFormatter::format_qso_list(&qsos);
         println!("{}", output);
     }
     Ok(())
@@ -540,9 +834,9 @@ fn get_qso(service: &QsoService, id: String, json: bool) -> Result<(), Box<dyn E
     match qso_result {
         Ok(qso) => {
             if json {
-                println!("{}", convert::qsos_to_json(&[qso.clone()]));
+                println!("{}", qsos_to_json(&[qso.clone()]));
             } else {
-                let output = formatter::QsoFormatter::format_qso_detail(&qso);
+                let output = QsoFormatter::format_qso_detail(&qso);
                 println!("{}", output);
             }
         }
@@ -590,10 +884,10 @@ fn update_qso(
     if let Some(v) = call { qso.call = v; }
     if let Some(v) = freq {
         qso.freq = v;
-        qso.band = types::Band::from_freq_mhz(v);
+        qso.band = Band::from_freq_mhz(v);
     }
     if let Some(mode_str) = mode {
-        qso.mode = types::Mode::from_str(&mode_str)
+        qso.mode = Mode::from_str(&mode_str)
             .ok_or_else(|| format!("Unknown mode: {}", mode_str))?;
     }
     if let Some(v) = rst_sent { qso.rst_sent = Some(v); }
@@ -646,12 +940,12 @@ fn search_qsos(service: &QsoService, call: String, json: bool) -> Result<(), Box
     let qsos = service.search_qsos(&call)?;
 
     if json {
-        println!("{}", convert::qsos_to_json(&qsos));
+        println!("{}", qsos_to_json(&qsos));
     } else {
         if qsos.is_empty() {
             println!("No QSOs matching '{}' found.", call);
         } else {
-            let output = formatter::QsoFormatter::format_qso_list(&qsos);
+            let output = QsoFormatter::format_qso_list(&qsos);
             println!("{}", output);
         }
     }
@@ -668,22 +962,22 @@ fn import_qsos(service: &QsoService, file: &str, format: Option<&str>) -> Result
     let qsos = match fmt.as_str() {
         "adi" | "adif" => {
             let content = std::fs::read_to_string(file)?;
-            convert::adi_to_qsos(&content)
+            adi_to_qsos(&content)
         }
         "adx" => {
             let content = std::fs::read_to_string(file)?;
-            convert::adx_to_qsos(&content)
+            adx_to_qsos(&content)
         }
         "csv" => {
             let content = std::fs::read_to_string(file)?;
-            convert::csv_to_qsos(&content)
+            csv_to_qsos(&content)
         }
         "json" => {
             let content = std::fs::read_to_string(file)?;
-            convert::json_to_qsos(&content)
+            json_to_qsos(&content)
                 .map_err(|e| -> Box<dyn Error> { e.into() })?
         }
-        "sqlite3" | "sqlite" | "db" => convert::sqlite_to_qsos(file)?,
+        "sqlite3" | "sqlite" | "db" => sqlite_to_qsos(file)?,
         _ => return Err(format!("Unknown format: {}", fmt).into()),
     };
 
@@ -704,23 +998,23 @@ fn export_qsos(service: &QsoService, file: &str, format: Option<&str>) -> Result
 
     match fmt.as_str() {
         "adi" | "adif" => {
-            let output = convert::qsos_to_adi(&qsos);
+            let output = qsos_to_adi(&qsos);
             std::fs::write(file, &output)?;
         }
         "adx" => {
-            let output = convert::qsos_to_adx(&qsos);
+            let output = qsos_to_adx(&qsos);
             std::fs::write(file, &output)?;
         }
         "csv" => {
-            let output = convert::qsos_to_csv(&qsos);
+            let output = qsos_to_csv(&qsos);
             std::fs::write(file, &output)?;
         }
         "json" => {
-            let output = convert::qsos_to_json(&qsos);
+            let output = qsos_to_json(&qsos);
             std::fs::write(file, &output)?;
         }
         "sqlite3" | "sqlite" | "db" => {
-            convert::qsos_to_sqlite(&qsos, file)?;
+            qsos_to_sqlite(&qsos, file)?;
         }
         _ => return Err(format!("Unknown format: {}", fmt).into()),
     };
@@ -756,25 +1050,25 @@ fn run_logbook(action: LogbookAction) -> Result<(), Box<dyn Error>> {
                 let qsos = match fmt.as_str() {
                     "adi" | "adif" => {
                         let content = std::fs::read_to_string(&file)?;
-                        convert::adi_to_qsos(&content)
+                        adi_to_qsos(&content)
                     }
                     "adx" => {
                         let content = std::fs::read_to_string(&file)?;
-                        convert::adx_to_qsos(&content)
+                        adx_to_qsos(&content)
                     }
                     "csv" => {
                         let content = std::fs::read_to_string(&file)?;
-                        convert::csv_to_qsos(&content)
+                        csv_to_qsos(&content)
                     }
                     "json" => {
                         let content = std::fs::read_to_string(&file)?;
-                        convert::json_to_qsos(&content)
+                        json_to_qsos(&content)
                             .map_err(|e| -> Box<dyn Error> { e.into() })?
                     }
                     _ => return Err(format!("Unsupported format for import: {}", fmt).into()),
                 };
 
-                convert::qsos_to_sqlite(&qsos, &temp_db)?;
+                qsos_to_sqlite(&qsos, &temp_db)?;
 
                 println!("Created temporary database: {} with {} QSOs", temp_db, qsos.len());
                 logbook_to_use = std::path::PathBuf::from(temp_db);
@@ -822,10 +1116,10 @@ fn run_logbook(action: LogbookAction) -> Result<(), Box<dyn Error>> {
 /// Run configuration commands
 fn run_config(action: ConfigAction) -> Result<(), Box<dyn Error>> {
     match action {
-        ConfigAction::Init => config_handler::ConfigFile::init_or_exists(),
-        ConfigAction::Show => config_handler::ConfigFile::show(),
+        ConfigAction::Init => ConfigFile::init_or_exists(),
+        ConfigAction::Show => ConfigFile::show(),
         ConfigAction::Set { field, value } => {
-            config_handler::ConfigFile::set(&field, &value)
+            ConfigFile::set(&field, &value)
         }
     }
 }

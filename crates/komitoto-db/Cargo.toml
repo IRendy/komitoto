@@ -1,0 +1,9 @@
+[package]
+name = "komitoto-db"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rusqlite = { workspace = true }
+chrono = { workspace = true }
+komitoto-types = { path = "../komitoto-types" }
