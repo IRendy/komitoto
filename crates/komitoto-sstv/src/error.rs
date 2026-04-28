@@ -1,12 +1,19 @@
 use std::fmt;
 
+/// Errors that can occur during SSTV encoding or decoding.
 #[derive(Debug)]
 pub enum SstvError {
+    /// An error occurred while reading or writing an image.
     ImageError(image::ImageError),
+    /// An I/O error occurred.
     IoError(std::io::Error),
+    /// An error occurred while reading or writing a WAV file.
     WavError(hound::Error),
+    /// An error occurred during SSTV encoding.
     EncodingError(String),
+    /// An error occurred during SSTV decoding.
     DecodingError(String),
+    /// The requested SSTV mode is not supported.
     UnsupportedMode(String),
 }
 

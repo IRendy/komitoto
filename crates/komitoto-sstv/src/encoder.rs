@@ -12,6 +12,7 @@ pub struct SstvEncoder {
 }
 
 impl SstvEncoder {
+    /// Create a new encoder for the given SSTV mode.
     pub fn new(mode: SstvMode) -> Self {
         Self { mode }
     }

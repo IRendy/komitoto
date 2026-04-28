@@ -2,6 +2,12 @@
 name = "komitoto-sstv"
 version = "0.1.0"
 edition = "2024"
+description = "SSTV (Slow-Scan Television) encoding and decoding library for HAM radio"
+license = "MIT"
+repository = "https://github.com/IRendy/komitoto"
+readme = "README.md"
+keywords = ["sstv", "ham-radio", "amateur-radio", "image-processing", "audio"]
+categories = ["multimedia::audio", "multimedia::images", "encoding"]
 
 [dependencies]
 image = { workspace = true }

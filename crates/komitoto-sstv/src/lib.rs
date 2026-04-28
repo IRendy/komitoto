@@ -1,7 +1,12 @@
 //! SSTV (Slow-Scan Television) encoding and decoding for HAM radio.
 //!
-//! Converts images to SSTV audio waveforms and vice versa.
-//! Currently supports Martin M1 mode (320x256, ~30 seconds audio).
+//! Converts images to SSTV audio waveforms and vice versa, supporting 14 modes
+//! across Martin, Scottie, Robot, PD, and AVT families.
+//!
+//! # Supported Modes
+//!
+//! - **RGB modes**: Martin M1/M2, Scottie S1/S2, AVT 90
+//! - **YUV modes**: Robot 36/72, PD 50/90/120/160/180/240/290
 //!
 //! # Example: Encode an image to SSTV audio
 //!

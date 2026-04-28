@@ -31,20 +31,35 @@ pub const DURATION_VIS_BIT: f64 = 30.0;
 pub const SAMPLE_RATE: u32 = 48000;
 
 /// Trait for SSTV mode specifications.
+///
+/// Each SSTV mode (Martin, Scottie, Robot, PD, AVT) implements this trait
+/// to define its timing parameters, channel order, and color space.
 pub trait ModeSpec {
+    /// Sample rate in Hz used for audio encoding/decoding.
     fn sample_rate(&self) -> u32;
+    /// Native image resolution as (width, height) in pixels.
     fn resolution(&self) -> (u32, u32);
+    /// VIS (Vertical Interval Signaling) code that identifies this mode.
     fn vis_code(&self) -> u8;
+    /// Human-readable mode name (e.g., "Martin M1").
     fn name(&self) -> &'static str;
+    /// Duration of the horizontal sync pulse in milliseconds.
     fn sync_duration_ms(&self) -> f64;
+    /// Duration of the separator tone between channels, if applicable.
     fn separator_duration_ms(&self) -> Option<f64>;
+    /// Ordered list of channel types transmitted per scan line.
     fn channel_order(&self) -> &'static [ChannelType];
+    /// Duration of the scan segment for the channel at the given index, in milliseconds.
     fn channel_scan_duration_ms(&self, idx: usize) -> f64;
+    /// Whether a separator tone precedes the channel at the given index.
     fn has_separator_before_channel(&self, idx: usize) -> bool;
+    /// Whether a sync pulse precedes the channel at the given index.
     fn has_sync_before_channel(&self, idx: usize) -> bool;
+    /// Whether a sync pulse follows after all channels in a line.
     fn has_sync_after_line(&self) -> bool { false }
     /// Number of display lines processed per scanline iteration (1 for most modes, 2 for PD modes).
     fn lines_per_iteration(&self) -> u32 { 1 }
+    /// Color space used by this mode (RGB or YUV).
     fn color_space(&self) -> ColorSpace;
     /// Front porch duration in ms — black-level gap after last channel, before sync pulse.
     /// Used by PD modes (PD240 has fp=2.0ms, others have 0).
