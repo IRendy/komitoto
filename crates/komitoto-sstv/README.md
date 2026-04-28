@@ -66,6 +66,10 @@ decoder.decode_to_file("sstv_input.wav", "decoded.png")?;
 - Automatic resampling for mismatched sample rates
 - RGB/YUV color space conversion for Robot and PD modes
 
+## Acknowledgments
+
+The encoding and decoding implementations reference [QSSTV](https://github.com/ON4QZ/QSSTV), an open-source SSTV program for Linux. Many of the timing parameters, VIS code conventions, and signal processing approaches are derived from the QSSTV source code.
+
 ## License
 
 MIT
