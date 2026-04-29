@@ -1,0 +1,91 @@
+name: Publish to AUR
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate PKGBUILD
+        run: |
+          cat > PKGBUILD << 'PKGBUILD_EOF'
+          # Maintainer: IRendy <irendy@qq.com>
+
+          pkgname="komitoto"
+          pkgver=${{ steps.version.outputs.version }}
+          pkgrel=1
+          pkgdesc="A CLI assistant for HAM"
+          url="https://github.com/IRendy/komitoto"
+          arch=("x86_64" "aarch64")
+          license=("MIT")
+          options=(!debug)
+
+          makedepends=(
+            'cargo'
+            'git'
+            'sqlite'
+          )
+          depends=('gcc-libs' 'sqlite')
+          source=("git+$url.git#tag=v${{ steps.version.outputs.version }}")
+          sha256sums=('SKIP')
+
+          pkgver() {
+            cd "$pkgname"
+            sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1
+          }
+
+          prepare() {
+            cd "$pkgname"
+
+            # Use system SQLite instead of bundled
+            sed -i 's/features = \["bundled"\]/features = []/' Cargo.toml
+            cargo update
+
+            cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: \(.*\)/\1/p')"
+          }
+
+          build() {
+            cd "$pkgname"
+            export SQLITE3_LIB_DIR="/usr/lib"
+            export SQLITE3_INCLUDE_DIR="/usr/include"
+            export RUSTFLAGS+=" --remap-path-prefix=$srcdir=/ "
+            cargo build --release --locked --target-dir target
+          }
+
+          check() {
+            cd "$pkgname"
+            export SQLITE3_LIB_DIR="/usr/lib"
+            export SQLITE3_INCLUDE_DIR="/usr/include"
+            cargo test --release --locked
+          }
+
+          package() {
+            cd "$pkgname"
+
+            install -Dm755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
+
+            install -Dm644 -t "$pkgdir/usr/share/$pkgname/" \
+              "hamradio-zones-geojson-main/cqzones.geojson" \
+              "hamradio-zones-geojson-main/ituzones.geojson"
+          }
+          PKGBUILD_EOF
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v4
+        with:
+          pkgname: komitoto
+          pkgbuild: ./PKGBUILD
+          commit_username: IRendy
+          commit_email: irendy@qq.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
