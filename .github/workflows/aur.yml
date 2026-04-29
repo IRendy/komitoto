@@ -109,6 +109,7 @@ jobs:
           echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur
           chmod 600 ~/.ssh/aur
           ssh-keyscan -t rsa,ecdsa,ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o UserKnownHostsFile=~/.ssh/known_hosts"
 
           git clone ssh://aur@aur.archlinux.org/komitoto.git aur-repo
           cp PKGBUILD .SRCINFO aur-repo/
@@ -117,4 +118,4 @@ jobs:
           git config user.email "irendy@qq.com"
           git add PKGBUILD .SRCINFO
           git diff --cached --quiet || git commit -m "Update to ${{ steps.version.outputs.version }}"
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/aur" git push origin master
+          git push origin master
