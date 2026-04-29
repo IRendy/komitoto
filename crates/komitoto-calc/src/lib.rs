@@ -63,13 +63,20 @@ pub mod geo {
     }
 
     impl ZoneFinder {
+        fn resolve_geojson(filename: &str) -> Option<std::path::PathBuf> {
+            let candidates = [
+                std::path::PathBuf::from(format!("hamradio-zones-geojson-main/{filename}")),
+                std::path::PathBuf::from(format!("/usr/share/komitoto/{filename}")),
+            ];
+            candidates.into_iter().find(|p| p.exists())
+        }
+
         pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
             let mut cq_zones = Vec::new();
             let mut ituzones = Vec::new();
 
             // Load CQ zones
-            let cq_path = Path::new("hamradio-zones-geojson-main/cqzones.geojson");
-            if cq_path.exists() {
+            if let Some(cq_path) = Self::resolve_geojson("cqzones.geojson") {
                 let content = std::fs::read_to_string(cq_path)?;
                 let data: JsonValue = serde_json::from_str(&content)?;
                 
@@ -91,8 +98,7 @@ pub mod geo {
             }
 
             // Load ITU zones  
-            let itu_path = Path::new("hamradio-zones-geojson-main/ituzones.geojson");
-            if itu_path.exists() {
+            if let Some(itu_path) = Self::resolve_geojson("ituzones.geojson") {
                 let content = std::fs::read_to_string(itu_path)?;
                 let data: JsonValue = serde_json::from_str(&content)?;
                 
