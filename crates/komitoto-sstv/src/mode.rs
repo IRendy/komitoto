@@ -14,7 +14,6 @@ pub enum SstvMode {
     Pd180,
     Pd240,
     Pd290,
-    Avt90,
 }
 
 impl SstvMode {
@@ -34,7 +33,6 @@ impl SstvMode {
             Self::Pd180 => "PD 180",
             Self::Pd240 => "PD 240",
             Self::Pd290 => "PD 290",
-            Self::Avt90 => "AVT 90",
         }
     }
 
@@ -54,7 +52,6 @@ impl SstvMode {
             "pd180" => Some(Self::Pd180),
             "pd240" => Some(Self::Pd240),
             "pd290" => Some(Self::Pd290),
-            "avt90" => Some(Self::Avt90),
             _ => None,
         }
     }
@@ -75,7 +72,6 @@ impl SstvMode {
             Self::Pd180,
             Self::Pd240,
             Self::Pd290,
-            Self::Avt90,
         ]
     }
 

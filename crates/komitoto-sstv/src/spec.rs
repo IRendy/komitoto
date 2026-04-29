@@ -32,7 +32,7 @@ pub const SAMPLE_RATE: u32 = 48000;
 
 /// Trait for SSTV mode specifications.
 ///
-/// Each SSTV mode (Martin, Scottie, Robot, PD, AVT) implements this trait
+/// Each SSTV mode (Martin, Scottie, Robot, PD) implements this trait
 /// to define its timing parameters, channel order, and color space.
 pub trait ModeSpec {
     /// Sample rate in Hz used for audio encoding/decoding.
@@ -511,29 +511,6 @@ impl ModeSpec for Pd290Spec {
     fn back_porch_ms(&self) -> f64 { Self::BP_MS }
 }
 
-// ─── AVT 90 ──────────────────────────────────────────────────────────────
-
-pub struct Avt90Spec;
-impl Avt90Spec {
-    pub const VIS_CODE: u8 = 0x44;
-    pub const SYNC_MS: f64 = 5.720;
-    pub const SCAN_MS: f64 = 130.048;
-    pub const CHANNELS: &'static [ChannelType] = &[ChannelType::Red, ChannelType::Green, ChannelType::Blue];
-}
-impl ModeSpec for Avt90Spec {
-    fn sample_rate(&self) -> u32 { SAMPLE_RATE }
-    fn resolution(&self) -> (u32, u32) { (320, 256) }
-    fn vis_code(&self) -> u8 { Self::VIS_CODE }
-    fn name(&self) -> &'static str { "AVT 90" }
-    fn sync_duration_ms(&self) -> f64 { Self::SYNC_MS }
-    fn separator_duration_ms(&self) -> Option<f64> { None }
-    fn channel_order(&self) -> &'static [ChannelType] { Self::CHANNELS }
-    fn channel_scan_duration_ms(&self, _idx: usize) -> f64 { Self::SCAN_MS }
-    fn has_separator_before_channel(&self, _idx: usize) -> bool { false }
-    fn has_sync_before_channel(&self, _idx: usize) -> bool { false }
-    fn color_space(&self) -> ColorSpace { ColorSpace::Rgb }
-}
-
 /// Get the ModeSpec for any SstvMode.
 pub fn from_mode(mode: SstvMode) -> &'static dyn ModeSpec {
     match mode {
@@ -550,7 +527,6 @@ pub fn from_mode(mode: SstvMode) -> &'static dyn ModeSpec {
         SstvMode::Pd180 => &Pd180Spec,
         SstvMode::Pd240 => &Pd240Spec,
         SstvMode::Pd290 => &Pd290Spec,
-        SstvMode::Avt90 => &Avt90Spec,
     }
 }
 
@@ -679,5 +655,85 @@ mod tests {
         let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
         assert!((total_sec - 72.0).abs() < 1.0,
             "Robot72 total time should be ~72s, got {:.1}s", total_sec);
+    }
+
+    #[test]
+    fn test_all_modes_have_unique_vis_codes() {
+        use std::collections::HashSet;
+        let mut seen = HashSet::new();
+        for mode in SstvMode::all() {
+            let spec = from_mode(*mode);
+            assert!(
+                seen.insert(spec.vis_code()),
+                "Duplicate VIS code 0x{:02X} for {}",
+                spec.vis_code(),
+                spec.name()
+            );
+        }
+    }
+
+    #[test]
+    fn test_martin_m2_total_time() {
+        let spec = MartinM2Spec;
+        let total = spec.total_samples();
+        let expected = (59.0 * 48000.0) as usize;
+        assert!((total as i64 - expected as i64).abs() < 50000,
+            "Martin M2 total samples {} vs expected ~{}", total, expected);
+    }
+
+    #[test]
+    fn test_scottie_s1_total_time() {
+        let spec = ScottieS1Spec;
+        let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
+        assert!((total_sec - 111.0).abs() < 2.0,
+            "Scottie S1 total time should be ~111s, got {:.1}s", total_sec);
+    }
+
+    #[test]
+    fn test_scottie_s2_total_time() {
+        let spec = ScottieS2Spec;
+        let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
+        assert!((total_sec - 72.0).abs() < 2.0,
+            "Scottie S2 total time should be ~72s, got {:.1}s", total_sec);
+    }
+
+    #[test]
+    fn test_pd120_total_time() {
+        let spec = from_mode(SstvMode::Pd120);
+        let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
+        assert!((total_sec - 127.0).abs() < 2.0,
+            "PD120 total time should be ~127s, got {:.1}s", total_sec);
+    }
+
+    #[test]
+    fn test_pd160_total_time() {
+        let spec = from_mode(SstvMode::Pd160);
+        let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
+        assert!((total_sec - 161.0).abs() < 2.0,
+            "PD160 total time should be ~161s, got {:.1}s", total_sec);
+    }
+
+    #[test]
+    fn test_pd180_total_time() {
+        let spec = from_mode(SstvMode::Pd180);
+        let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
+        assert!((total_sec - 188.0).abs() < 2.0,
+            "PD180 total time should be ~188s, got {:.1}s", total_sec);
+    }
+
+    #[test]
+    fn test_pd240_total_time() {
+        let spec = from_mode(SstvMode::Pd240);
+        let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
+        assert!((total_sec - 249.0).abs() < 2.0,
+            "PD240 total time should be ~249s, got {:.1}s", total_sec);
+    }
+
+    #[test]
+    fn test_pd290_total_time() {
+        let spec = from_mode(SstvMode::Pd290);
+        let total_sec = spec.total_samples() as f64 / spec.sample_rate() as f64;
+        assert!((total_sec - 290.0).abs() < 2.0,
+            "PD290 total time should be ~290s, got {:.1}s", total_sec);
     }
 }

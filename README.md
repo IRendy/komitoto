@@ -768,7 +768,7 @@ komitoto calc coordinate --from latlon --to grid --lat 39.9042 --lon 116.4074
 
 #### `komitoto calc sstv` — SSTV 慢扫描电视
 
-将图像编码为 SSTV 音频，或将 SSTV 音频解码为图像。支持 14 种 SSTV 模式。
+将图像编码为 SSTV 音频，或将 SSTV 音频解码为图像。支持 13 种 SSTV 模式。
 
 **命令：**
 
@@ -779,7 +779,7 @@ komitoto calc coordinate --from latlon --to grid --lat 39.9042 --lon 116.4074
 | `info`   | 显示指定 SSTV 模式的详细信息 |
 | `list`   | 列出所有支持的 SSTV 模式 |
 
-**支持的 SSTV 模式 (14 种)：**
+**支持的 SSTV 模式 (13 种)：**
 
 | 模式 | 分辨率 | 时长 | 说明 |
 |------|--------|------|------|
@@ -787,10 +787,12 @@ komitoto calc coordinate --from latlon --to grid --lat 39.9042 --lon 116.4074
 | Martin M2 | 320×256 | ~57s | M1 的半速版本 |
 | Scottie S1 | 320×256 | ~112s | 另一种常用模式 |
 | Scottie S2 | 320×256 | ~71s | S1 的较短版本 |
-| Robot 36 | 320×240 | ~44s | YUV 色彩空间，NTSC 风格 |
+| Robot 36 | 320×240 | ~36s | YUV 色彩空间，NTSC 风格 |
 | Robot 72 | 320×240 | ~72s | 更高质量的 Robot |
-| PD 50/90/120/180/240/290 | 320×256 | 可变 | 双音同步模式 |
-| AVT 90/120 | 320×256 | 可变 | VOX 友好的双音模式 |
+| PD 50/90 | 320×256 | 可变 | 双音同步模式 |
+| PD 120/180/240 | 640×496 | 可变 | 双音同步模式 |
+| PD 160 | 512×400 | 可变 | 双音同步模式 |
+| PD 290 | 800×616 | 可变 | 双音同步模式 |
 
 **示例：**
 
@@ -836,12 +838,10 @@ Supported SSTV modes:
   Robot 72 (320x240)
   PD 50 (320x256)
   PD 90 (320x256)
-  PD 120 (320x256)
-  PD 180 (320x256)
-  PD 240 (320x256)
-  PD 290 (320x256)
-  AVT 90 (320x256)
-  AVT 120 (320x256)
+  PD 120 (640x496)
+  PD 180 (640x496)
+  PD 240 (640x496)
+  PD 290 (800x616)
 
 # 2. 使用 Martin M1 编码图像（最常用的 HF 模式）
 $ komitoto calc sstv encode cq.png -m m1 -o cq_m1.wav
@@ -925,7 +925,6 @@ Error: Unknown SSTV mode: 'badmode'. Use --list to see available modes.
 | HF 通联（快速） | Martin M2 | `komitoto calc sstv encode photo.png -m m2` |
 | VHF/UHF 通联 | Robot 36 | `komitoto calc sstv encode photo.png -m r36` |
 | 宽频带、高质量 | PD 90/120 | `komitoto calc sstv encode photo.png -m pd90` |
-| VOX 操作 | AVT 90/120 | `komitoto calc sstv encode photo.png -m avt90` |
 
 **encode 选项：**
 

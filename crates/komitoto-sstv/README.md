@@ -2,26 +2,25 @@
 
 SSTV (Slow-Scan Television) encoding and decoding library for HAM radio, written in Rust.
 
-Supports 14 SSTV modes across Martin, Scottie, Robot, PD, and AVT families, with both RGB and YUV color spaces.
+Supports 13 SSTV modes across Martin, Scottie, Robot, and PD families, with both RGB and YUV color spaces.
 
 ## Supported Modes
 
 | Mode       | Resolution | Color Space | Approx. Duration |
 |------------|-----------|-------------|-----------------|
-| Martin M1  | 320x256   | RGB         | ~30s            |
-| Martin M2  | 320x256   | RGB         | ~15s            |
-| Scottie S1 | 320x256   | RGB         | ~28s            |
-| Scottie S2 | 320x256   | RGB         | ~18s            |
+| Martin M1  | 320x256   | RGB         | ~115s           |
+| Martin M2  | 320x256   | RGB         | ~59s            |
+| Scottie S1 | 320x256   | RGB         | ~111s           |
+| Scottie S2 | 320x256   | RGB         | ~72s            |
 | Robot 36   | 320x240   | YUV         | ~36s            |
 | Robot 72   | 320x240   | YUV         | ~72s            |
 | PD 50      | 320x256   | YUV         | ~50s            |
 | PD 90      | 320x256   | YUV         | ~90s            |
-| PD 120     | 640x496   | YUV         | ~120s           |
-| PD 160     | 512x400   | YUV         | ~160s           |
-| PD 180     | 640x496   | YUV         | ~180s           |
-| PD 240     | 640x496   | YUV         | ~240s           |
+| PD 120     | 640x496   | YUV         | ~127s           |
+| PD 160     | 512x400   | YUV         | ~161s           |
+| PD 180     | 640x496   | YUV         | ~188s           |
+| PD 240     | 640x496   | YUV         | ~249s           |
 | PD 290     | 800x616   | YUV         | ~290s           |
-| AVT 90     | 320x256   | RGB         | ~90s            |
 
 ## Usage
 
