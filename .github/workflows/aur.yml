@@ -82,10 +82,12 @@ jobs:
           PKGBUILD_EOF
 
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.3
         with:
           pkgname: komitoto
           pkgbuild: ./PKGBUILD
           commit_username: IRendy
           commit_email: irendy@qq.com
+          commit_message: Update AUR package
+          ssh_keyscan_types: rsa,ecdsa,ed25519
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
