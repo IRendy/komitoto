@@ -19,7 +19,7 @@ jobs:
 
       - name: Generate PKGBUILD
         run: |
-          cat > PKGBUILD << 'PKGBUILD_EOF'
+          cat > PKGBUILD << PKGBUILD_EOF
           # Maintainer: IRendy <irendy@qq.com>
 
           pkgname="komitoto"
@@ -37,57 +37,84 @@ jobs:
             'sqlite'
           )
           depends=('gcc-libs' 'sqlite')
-          source=("git+$url.git#tag=v${{ steps.version.outputs.version }}")
+          source=("git+\$url.git#tag=v${{ steps.version.outputs.version }}")
           sha256sums=('SKIP')
 
           pkgver() {
-            cd "$pkgname"
+            cd "\$pkgname"
             sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1
           }
 
           prepare() {
-            cd "$pkgname"
+            cd "\$pkgname"
 
             # Use system SQLite instead of bundled
             sed -i 's/features = \["bundled"\]/features = []/' Cargo.toml
             cargo update
 
-            cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: \(.*\)/\1/p')"
+            cargo fetch --locked --target "\$(rustc -vV | sed -n 's/host: \(.*\)/\1/p')"
           }
 
           build() {
-            cd "$pkgname"
+            cd "\$pkgname"
             export SQLITE3_LIB_DIR="/usr/lib"
             export SQLITE3_INCLUDE_DIR="/usr/include"
-            export RUSTFLAGS+=" --remap-path-prefix=$srcdir=/ "
+            export RUSTFLAGS+=" --remap-path-prefix=\$srcdir=/ "
             cargo build --release --locked --target-dir target
           }
 
           check() {
-            cd "$pkgname"
+            cd "\$pkgname"
             export SQLITE3_LIB_DIR="/usr/lib"
             export SQLITE3_INCLUDE_DIR="/usr/include"
             cargo test --release --locked
           }
 
           package() {
-            cd "$pkgname"
+            cd "\$pkgname"
 
-            install -Dm755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
+            install -Dm755 "target/release/\$pkgname" "\$pkgdir/usr/bin/\$pkgname"
 
-            install -Dm644 -t "$pkgdir/usr/share/$pkgname/" \
+            install -Dm644 -t "\$pkgdir/usr/share/\$pkgname/" \
               "hamradio-zones-geojson-main/cqzones.geojson" \
               "hamradio-zones-geojson-main/ituzones.geojson"
           }
           PKGBUILD_EOF
 
+      - name: Generate .SRCINFO
+        run: |
+          cat > .SRCINFO << SRCINFO_EOF
+          pkgbase = komitoto
+          	pkgdesc = A CLI assistant for HAM
+          	pkgver = ${{ steps.version.outputs.version }}
+          	pkgrel = 1
+          	url = https://github.com/IRendy/komitoto
+          	arch = x86_64
+          	arch = aarch64
+          	license = MIT
+          	makedepends = cargo
+          	makedepends = git
+          	makedepends = sqlite
+          	depends = gcc-libs
+          	depends = sqlite
+          	source = git+https://github.com/IRendy/komitoto.git#tag=v${{ steps.version.outputs.version }}
+          	sha256sums = SKIP
+
+          pkgname = komitoto
+          SRCINFO_EOF
+
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4.1.3
-        with:
-          pkgname: komitoto
-          pkgbuild: ./PKGBUILD
-          commit_username: IRendy
-          commit_email: irendy@qq.com
-          commit_message: Update AUR package
-          ssh_keyscan_types: rsa,ecdsa,ed25519
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -t rsa,ecdsa,ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+
+          git clone ssh://aur@aur.archlinux.org/komitoto.git aur-repo
+          cp PKGBUILD .SRCINFO aur-repo/
+          cd aur-repo
+          git config user.name "IRendy"
+          git config user.email "irendy@qq.com"
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet || git commit -m "Update to ${{ steps.version.outputs.version }}"
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/aur" git push origin master
