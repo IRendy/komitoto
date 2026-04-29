@@ -1,13 +1,13 @@
 [workspace]
 members = [
-    "crates/komitoto-types",
-    "crates/komitoto-calc",
-    "crates/komitoto-db",
-    "crates/komitoto-service",
-    "crates/komitoto-convert",
-    "crates/komitoto-formatter",
-    "crates/komitoto-config",
-    "crates/komitoto-sstv",
+  "crates/komitoto-types",
+  "crates/komitoto-calc",
+  "crates/komitoto-db",
+  "crates/komitoto-service",
+  "crates/komitoto-convert",
+  "crates/komitoto-formatter",
+  "crates/komitoto-config",
+  "crates/komitoto-sstv",
 ]
 
 [workspace.dependencies]
@@ -26,7 +26,7 @@ hound = "3.5"
 
 [package]
 name = "komitoto"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 [dependencies]
