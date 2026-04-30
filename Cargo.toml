@@ -27,7 +27,7 @@ hound = "3.5"
 
 [package]
 name = "komitoto"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 
 [dependencies]
