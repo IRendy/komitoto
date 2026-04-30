@@ -652,6 +652,10 @@ Distance from (39.9042, 116.4074) to (23.1291, 113.2644): 1883.50 km
 komitoto tools distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737 --unit miles
 Distance from (39.9042, 116.4074) to (30.2428, 121.4737): 724.93 miles
 
+# 跨半球计算 - 北京到纽约
+komitoto tools distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 40.7128 --to-lon -74.0060
+Distance from (39.9042, 116.4074) to (40.7128, -74.006): 11014.50 km
+
 # JSON 输出
 komitoto tools distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737 --json
 {
@@ -691,6 +695,24 @@ komitoto tools zone --lat 22.3193 --lon 114.1694
 Location: (22.3193, 114.1694)
 CQ Zone: 24
 ITU Zone: 44
+
+# 查询悉尼的分区（南纬、东经）
+komitoto tools zone --lat -33.8688 --lon 151.2093
+Location: (-33.8688, 151.2093)
+CQ Zone: 30
+ITU Zone: 59
+
+# 查询纽约的分区（北纬、西经）
+komitoto tools zone --lat 40.7128 --lon -74.0060
+Location: (40.7128, -74.006)
+CQ Zone: 5
+ITU Zone: 8
+
+# 查询布宜诺斯艾利斯的分区（南纬、西经）
+komitoto tools zone --lat -34.6037 --lon -58.3816
+Location: (-34.6037, -58.3816)
+CQ Zone: 13
+ITU Zone: 14
 
 # JSON 输出
 komitoto tools zone --lat 39.9042 --lon 116.4074 --json
@@ -754,6 +776,16 @@ Grid: OM89
 komitoto tools coordinate --lat 39.9042 --lon 116.4074 --precision 2
 Input: (39.9042, 116.4074)
 Grid: OM
+
+# 南纬/西经坐标（悉尼）
+komitoto tools coordinate --lat -33.8688 --lon 151.2093
+Input: (-33.8688, 151.2093)
+Grid: QF56od
+
+# 西经坐标（纽约）
+komitoto tools coordinate --lat 40.7128 --lon -74.0060
+Input: (40.7128, -74.006)
+Grid: FN20xr
 
 # JSON 输出
 komitoto tools coordinate --lat 39.9042 --lon 116.4074 --json

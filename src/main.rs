@@ -248,11 +248,11 @@ enum ToolsAction {
     /// Calculate sunrise/sunset times for a given location
     Sunrise {
         /// Latitude (decimal degrees, positive = North)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         lat: f64,
 
         /// Longitude (decimal degrees, positive = East)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         lon: f64,
 
         /// Date in YYYYMMDD format (defaults to today)
@@ -260,7 +260,7 @@ enum ToolsAction {
         date: Option<String>,
 
         /// Altitude in meters (default: 0)
-        #[arg(long, default_value = "0.0")]
+        #[arg(long, default_value = "0.0", allow_hyphen_values = true)]
         altitude: f64,
 
         /// Dawn type: civil, nautical, astronomical (default: civil)
@@ -274,19 +274,19 @@ enum ToolsAction {
     /// Calculate distance between two coordinates
     Distance {
         /// Starting latitude (decimal degrees, positive = North)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         from_lat: f64,
 
         /// Starting longitude (decimal degrees, positive = East)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         from_lon: f64,
 
         /// Ending latitude (decimal degrees, positive = North)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         to_lat: f64,
 
         /// Ending longitude (decimal degrees, positive = East)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         to_lon: f64,
 
         /// Unit: km or miles
@@ -300,11 +300,11 @@ enum ToolsAction {
     /// Find CQ and ITU zone for a coordinate
     Zone {
         /// Latitude (decimal degrees, positive = North)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         lat: f64,
 
         /// Longitude (decimal degrees, positive = East)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         lon: f64,
 
         /// Output as JSON
@@ -322,11 +322,11 @@ enum ToolsAction {
         to: Option<String>,
 
         /// Latitude (decimal degrees, positive = North)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         lat: Option<f64>,
 
         /// Longitude (decimal degrees, positive = East)
-        #[arg(long)]
+        #[arg(long, allow_hyphen_values = true)]
         lon: Option<f64>,
 
         /// Input value (grid string like "OL82tk" or coordinates like "39.9042,116.4074")
