@@ -38,9 +38,11 @@ pub mod sunrise {
 
 pub mod geo {
     use geo::{Contains, Coord, Point, Polygon};
-    use std::path::Path;
     use lazy_static::lazy_static;
     use serde_json::Value as JsonValue;
+
+    const CQ_GEOJSON: &str = include_str!("../../../hamradio-zones-geojson-main/cqzones.geojson");
+    const ITU_GEOJSON: &str = include_str!("../../../hamradio-zones-geojson-main/ituzones.geojson");
 
     /// Calculate distance between two coordinates using Vincenty formula
     pub fn calc_distance(
@@ -63,61 +65,32 @@ pub mod geo {
     }
 
     impl ZoneFinder {
-        fn resolve_geojson(filename: &str) -> Option<std::path::PathBuf> {
-            let candidates = [
-                std::path::PathBuf::from(format!("hamradio-zones-geojson-main/{filename}")),
-                std::path::PathBuf::from(format!("/usr/share/komitoto/{filename}")),
-            ];
-            candidates.into_iter().find(|p| p.exists())
+        fn load_zones(json_str: &str, zone_key: &str) -> Result<Vec<(Polygon<f64>, i32)>, Box<dyn std::error::Error>> {
+            let mut zones = Vec::new();
+            let data: JsonValue = serde_json::from_str(json_str)?;
+            
+            if let Some(features) = data.get("features").and_then(|v| v.as_array()) {
+                for feature in features {
+                    if let Some(props) = feature.get("properties") {
+                        if let Some(num) = props.get(zone_key).and_then(|v| v.as_i64()) {
+                            let zone_num = num as i32;
+                            
+                            if let Some(geom) = feature.get("geometry") {
+                                if let Some(poly) = Self::extract_polygon_from_geom(geom)? {
+                                    zones.push((poly, zone_num));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Ok(zones)
         }
 
         pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-            let mut cq_zones = Vec::new();
-            let mut ituzones = Vec::new();
-
-            // Load CQ zones
-            if let Some(cq_path) = Self::resolve_geojson("cqzones.geojson") {
-                let content = std::fs::read_to_string(cq_path)?;
-                let data: JsonValue = serde_json::from_str(&content)?;
-                
-                if let Some(features) = data.get("features").and_then(|v| v.as_array()) {
-                    for feature in features {
-                        if let Some(props) = feature.get("properties") {
-                            if let Some(num) = props.get("cq_zone_number").and_then(|v| v.as_i64()) {
-                                let zone_num = num as i32;
-                                
-                                if let Some(geom) = feature.get("geometry") {
-                                    if let Some(poly) = Self::extract_polygon_from_geom(geom)? {
-                                        cq_zones.push((poly, zone_num));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Load ITU zones  
-            if let Some(itu_path) = Self::resolve_geojson("ituzones.geojson") {
-                let content = std::fs::read_to_string(itu_path)?;
-                let data: JsonValue = serde_json::from_str(&content)?;
-                
-                if let Some(features) = data.get("features").and_then(|v| v.as_array()) {
-                    for feature in features {
-                        if let Some(props) = feature.get("properties") {
-                            if let Some(num) = props.get("itu_zone_number").and_then(|v| v.as_i64()) {
-                                let zone_num = num as i32;
-                                
-                                if let Some(geom) = feature.get("geometry") {
-                                    if let Some(poly) = Self::extract_polygon_from_geom(geom)? {
-                                        ituzones.push((poly, zone_num));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            let cq_zones = Self::load_zones(CQ_GEOJSON, "cq_zone_number")?;
+            let ituzones = Self::load_zones(ITU_GEOJSON, "itu_zone_number")?;
 
             Ok(Self { 
                 cq_zones,

@@ -854,16 +854,18 @@ dependencies = [
 
 [[package]]
 name = "komitoto"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "clap",
+ "image",
  "komitoto-calc",
  "komitoto-config",
  "komitoto-convert",
  "komitoto-db",
  "komitoto-formatter",
  "komitoto-service",
+ "komitoto-ssdv",
  "komitoto-sstv",
  "komitoto-types",
 ]
@@ -926,8 +928,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "komitoto-sstv"
+name = "komitoto-ssdv"
 version = "0.1.0"
+dependencies = [
+ "crc32fast",
+]
+
+[[package]]
+name = "komitoto-sstv"
+version = "0.1.1"
 dependencies = [
  "hound",
  "image",

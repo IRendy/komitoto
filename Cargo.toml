@@ -8,6 +8,7 @@ members = [
   "crates/komitoto-formatter",
   "crates/komitoto-config",
   "crates/komitoto-sstv",
+  "crates/komitoto-ssdv",
 ]
 
 [workspace.dependencies]
@@ -40,3 +41,5 @@ komitoto-convert = { path = "crates/komitoto-convert" }
 komitoto-formatter = { path = "crates/komitoto-formatter" }
 komitoto-config = { path = "crates/komitoto-config" }
 komitoto-sstv = { path = "crates/komitoto-sstv" }
+komitoto-ssdv = { path = "crates/komitoto-ssdv" }
+image = { workspace = true }

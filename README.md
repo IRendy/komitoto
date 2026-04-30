@@ -18,7 +18,16 @@ komitoto log add --call BI3SEY --freq 438.500 --mode FT8 --date 20251215
 komitoto log list
 
 # 查看日出时间
-komitoto calc sunrise --lat 39.9042 --lon 116.4074
+komitoto tools sunrise --lat 39.9042 --lon 116.4074
+
+# 呼号验证
+komitoto tools callsign BD7ACE
+
+# SSTV 图像编码
+komitoto sstv encode photo.png -m m1 -o tx.wav
+
+# SSDV 图像编码
+komitoto ssdv encode photo.jpg -c BD7ACE -o photo.bin
 ```
 
 ---
@@ -519,14 +528,14 @@ ADIF_VER=3_1_7
 
 ---
 
-### `komitoto calc` — 计算工具
+### `komitoto tools` — 实用工具
 
-#### `komitoto calc sunrise`
+#### `komitoto tools sunrise`
 
 计算指定位置的日出、日落及晨光/暮光时间。
 
 ```bash
-komitoto calc sunrise [OPTIONS] --lat <LAT> --lon <LON>
+komitoto tools sunrise [OPTIONS] --lat <LAT> --lon <LON>
 ```
 
 选项：
@@ -554,7 +563,7 @@ komitoto calc sunrise [OPTIONS] --lat <LAT> --lon <LON>
 
 ```bash
 # 计算广州今日日出日落
-komitoto calc sunrise --lat 23.1291 --lon 113.2644
+komitoto tools sunrise --lat 23.1291 --lon 113.2644
 Sun times for 20260427 at (23.1291, 113.2644) alt=0m
 ==================================================
   Sunrise:  21:59:53 UTC (BJT: 05:59:53)
@@ -563,7 +572,7 @@ Sun times for 20260427 at (23.1291, 113.2644) alt=0m
   Dusk:     11:13:44 UTC (BJT: 19:13:44)
 
 # 计算北京指定日期
-komitoto calc sunrise --lat 39.9042 --lon 116.4074 --date 20250115
+komitoto tools sunrise --lat 39.9042 --lon 116.4074 --date 20250115
 Sun times for 20250115 at (39.9042, 116.4074) alt=0m
 ==================================================
   Sunrise:  23:34:04 UTC (BJT: 2025-01-15 07:34:04)
@@ -572,26 +581,26 @@ Sun times for 20250115 at (39.9042, 116.4074) alt=0m
   Dusk:     09:42:36 UTC (BJT: 2025-01-15 17:42:36)
 
 # 使用航海晨光
-komitoto calc sunrise --lat 39.9042 --lon 116.4074 --dawn nautical
+komitoto tools sunrise --lat 39.9042 --lon 116.4074 --dawn nautical
 
 # 指定海拔
-komitoto calc sunrise --lat 23.1291 --lon 113.2644 --altitude 100
+komitoto tools sunrise --lat 23.1291 --lon 113.2644 --altitude 100
 
 # 不同半球测试 - 纽约
-komitoto calc sunrise --lat 40.7128 --lon=-74.0060 --date 20250621 --altitude 10
+komitoto tools sunrise --lat 40.7128 --lon=-74.0060 --date 20250621 --altitude 10
 Sun times for 20250621 at (40.7128, -74.006) alt=10m
 ==================================================
   Sunrise:  09:24:20 UTC (BJT: 2025-06-21 17:24:20)
   Sunset:   00:31:20 UTC (BJT: 2025-06-22 08:31:20)
 
 # 南半球 - 布宜诺斯艾利斯
-komitoto calc sunrise --lat=-35 --lon=-58 --date 20250621 --altitude=-10
+komitoto tools sunrise --lat=-35 --lon=-58 --date 20250621 --altitude=-10
 Sun times for 20250621 at (-35, -58) alt=-10m
 ==================================================
   Sunrise:  11:00:28 UTC (BJT: 2025-06-21 19:00:28)
 
 # JSON 输出
-komitoto calc sunrise --lat 39.9042 --lon 116.4074 --json
+komitoto tools sunrise --lat 39.9042 --lon 116.4074 --json
 {
   "date": "20250115",
   "lat": 39.9042,
@@ -604,17 +613,17 @@ komitoto calc sunrise --lat 39.9042 --lon 116.4074 --json
 }
 
 # 错误处理：极地特殊情况
-komitoto calc sunrise --lat 90 --lon 0 --date 20250621
+komitoto tools sunrise --lat 90 --lon 0 --date 20250621
 thread 'main' panicked at src/calc.rs:23:64:
 called `Option::unwrap()` on a `None` value
 ```
 
-#### `komitoto calc distance`
+#### `komitoto tools distance`
 
 计算两点之间的距离。
 
 ```bash
-komitoto calc distance [OPTIONS] --from-lat <FROM_LAT> --from-lon <FROM_LON> --to-lat <TO_LAT> --to-lon <TO_LON>
+komitoto tools distance [OPTIONS] --from-lat <FROM_LAT> --from-lon <FROM_LON> --to-lat <TO_LAT> --to-lon <TO_LON>
 ```
 
 选项：
@@ -632,19 +641,19 @@ komitoto calc distance [OPTIONS] --from-lat <FROM_LAT> --from-lon <FROM_LON> --t
 
 ```bash
 # 计算北京到上海的距离
-komitoto calc distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737
+komitoto tools distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737
 Distance from (39.9042, 116.4074) to (30.2428, 121.4737): 1166.66 km
 
 # 计算北京到广州的距离
-komitoto calc distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 23.1291 --to-lon 113.2644
+komitoto tools distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 23.1291 --to-lon 113.2644
 Distance from (39.9042, 116.4074) to (23.1291, 113.2644): 1883.50 km
 
 # 英里单位
-komitoto calc distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737 --unit miles
+komitoto tools distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737 --unit miles
 Distance from (39.9042, 116.4074) to (30.2428, 121.4737): 724.93 miles
 
 # JSON 输出
-komitoto calc distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737 --json
+komitoto tools distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 --to-lon 121.4737 --json
 {
   "from": { "lat": 39.9042, "lon": 116.4074 },
   "to": { "lat": 30.2428, "lon": 121.4737 },
@@ -652,12 +661,12 @@ komitoto calc distance --from-lat 39.9042 --from-lon 116.4074 --to-lat 30.2428 -
 }
 ```
 
-#### `komitoto calc zone`
+#### `komitoto tools zone`
 
 计算指定坐标的 CQ 分区和 ITU 分区。
 
 ```bash
-komitoto calc zone [OPTIONS] --lat <LAT> --lon <LON>
+komitoto tools zone [OPTIONS] --lat <LAT> --lon <LON>
 ```
 
 选项：
@@ -672,19 +681,19 @@ komitoto calc zone [OPTIONS] --lat <LAT> --lon <LON>
 
 ```bash
 # 查询北京的分区
-komitoto calc zone --lat 39.9042 --lon 116.4074
+komitoto tools zone --lat 39.9042 --lon 116.4074
 Location: (39.9042, 116.4074)
 CQ Zone: 24
 ITU Zone: 44
 
 # 查询香港的分区
-komitoto calc zone --lat 22.3193 --lon 114.1694
+komitoto tools zone --lat 22.3193 --lon 114.1694
 Location: (22.3193, 114.1694)
 CQ Zone: 24
 ITU Zone: 44
 
 # JSON 输出
-komitoto calc zone --lat 39.9042 --lon 116.4074 --json
+komitoto tools zone --lat 39.9042 --lon 116.4074 --json
 {
   "location": { "lat": 39.9042, "lon": 116.4074 },
   "cq_zone": { "type": "CQ", "number": 24 },
@@ -694,12 +703,12 @@ komitoto calc zone --lat 39.9042 --lon 116.4074 --json
 
 ---
 
-#### `komitoto calc coordinate`
+#### `komitoto tools coordinate`
 
 在 Maidenhead 网格定位和经纬度之间互相转换。
 
 ```bash
-komitoto calc coordinate [OPTIONS]
+komitoto tools coordinate [OPTIONS]
 ```
 
 选项：
@@ -722,39 +731,39 @@ komitoto calc coordinate [OPTIONS]
 
 ```bash
 # 北京经纬转网格（默认 6 字符精度）
-komitoto calc coordinate --lat 39.9042 --lon 116.4074
+komitoto tools coordinate --lat 39.9042 --lon 116.4074
 Input: (39.9042, 116.4074)
 Grid: OM89ev
 
 # 使用 input 参数
-komitoto calc coordinate --input "39.9042,116.4074"
+komitoto tools coordinate --input "39.9042,116.4074"
 Input: (39.9042, 116.4074)
 Grid: OM89ev
 
 # 网格转经纬度
-komitoto calc coordinate --input OL82tk
+komitoto tools coordinate --input OL82tk
 Input: OL82tk
 Latitude: 22.4375
 Longitude: 117.625
 
 # 不同精度
-komitoto calc coordinate --lat 39.9042 --lon 116.4074 --precision 4
+komitoto tools coordinate --lat 39.9042 --lon 116.4074 --precision 4
 Input: (39.9042, 116.4074)
 Grid: OM89
 
-komitoto calc coordinate --lat 39.9042 --lon 116.4074 --precision 2
+komitoto tools coordinate --lat 39.9042 --lon 116.4074 --precision 2
 Input: (39.9042, 116.4074)
 Grid: OM
 
 # JSON 输出
-komitoto calc coordinate --lat 39.9042 --lon 116.4074 --json
+komitoto tools coordinate --lat 39.9042 --lon 116.4074 --json
 {
   "latitude": 39.9042,
   "longitude": 116.4074,
   "grid": "OM89ev"
 }
 
-komitoto calc coordinate --input OL82tk --json
+komitoto tools coordinate --input OL82tk --json
 {
   "input": "OL82tk",
   "latitude": 22.4375,
@@ -762,11 +771,11 @@ komitoto calc coordinate --input OL82tk --json
 }
 
 # 显式指定转换方向
-komitoto calc coordinate --from grid --to latlon --input OL82tk
-komitoto calc coordinate --from latlon --to grid --lat 39.9042 --lon 116.4074
+komitoto tools coordinate --from grid --to latlon --input OL82tk
+komitoto tools coordinate --from latlon --to grid --lat 39.9042 --lon 116.4074
 ```
 
-#### `komitoto calc sstv` — SSTV 慢扫描电视
+### `komitoto sstv` — SSTV 慢扫描电视
 
 将图像编码为 SSTV 音频，或将 SSTV 音频解码为图像。支持 13 种 SSTV 模式。
 
@@ -798,29 +807,29 @@ komitoto calc coordinate --from latlon --to grid --lat 39.9042 --lon 116.4074
 
 ```bash
 # 将图像编码为 SSTV 音频 (默认 Martin M1, fit 缩放)
-komitoto calc sstv encode photo.png
+komitoto sstv encode photo.png
 
 # 指定模式、裁剪策略和输出文件
-komitoto calc sstv encode photo.png -m scotties1 -s crop -o tx.wav
+komitoto sstv encode photo.png -m scotties1 -s crop -o tx.wav
 
 # 将 SSTV WAV 音频解码为图像
-komitoto calc sstv decode received.wav -m martinm1
+komitoto sstv decode received.wav -m martinm1
 
 # 将 SSTV MP3 音频解码为图像 (自动重采样)
-komitoto calc sstv decode received.mp3 -m martinm1 -o decoded.png
+komitoto sstv decode received.mp3 -m martinm1 -o decoded.png
 
 # 查看模式信息
-komitoto calc sstv info pd90
+komitoto sstv info pd90
 Mode: PD 90
 Resolution: 320x256
 Sample rate: 11025 Hz
 Encoding: ~105 seconds for a full image
 
 # 列出所有模式
-komitoto calc sstv list
+komitoto sstv list
 
 # 转换为 MP3 (使用 ffmpeg)
-komitoto calc sstv encode photo.png -o photo.wav
+komitoto sstv encode photo.png -o photo.wav
 ffmpeg -i photo.wav -codec:a libmp3lame -qscale:a 2 photo.mp3
 ```
 
@@ -828,7 +837,7 @@ ffmpeg -i photo.wav -codec:a libmp3lame -qscale:a 2 photo.mp3
 
 ```bash
 # 1. 列出所有支持的 SSTV 模式
-$ komitoto calc sstv list
+$ komitoto sstv list
 Supported SSTV modes:
   Martin M1 (320x256)
   Martin M2 (320x256)
@@ -844,7 +853,7 @@ Supported SSTV modes:
   PD 290 (800x616)
 
 # 2. 使用 Martin M1 编码图像（最常用的 HF 模式）
-$ komitoto calc sstv encode cq.png -m m1 -o cq_m1.wav
+$ komitoto sstv encode cq.png -m m1 -o cq_m1.wav
 SSTV audio generated: cq_m1.wav
   Mode: Martin M1
   Resolution: 320x256
@@ -852,7 +861,7 @@ SSTV audio generated: cq_m1.wav
   Resize: fit
 
 # 3. 使用 Robot 36 编码（快速模式，YUV 色彩）
-$ komitoto calc sstv encode photo.jpg -m r36 -o fast.wav
+$ komitoto sstv encode photo.jpg -m r36 -o fast.wav
 SSTV audio generated: fast.wav
   Mode: Robot 36
   Resolution: 320x240
@@ -860,7 +869,7 @@ SSTV audio generated: fast.wav
   Resize: fit
 
 # 4. 使用 Scottie S1 + crop 策略（裁剪图像适应 320×256）
-$ komitoto calc sstv encode wide.png -m s1 -s crop -o scottie.wav
+$ komitoto sstv encode wide.png -m s1 -s crop -o scottie.wav
 SSTV audio generated: scottie.wav
   Mode: Scottie S1
   Resolution: 320x256
@@ -868,7 +877,7 @@ SSTV audio generated: scottie.wav
   Resize: crop
 
 # 5. 使用 PD 90 编码（双音同步模式）
-$ komitoto calc sstv encode photo.png -m pd90 -o pd90.wav
+$ komitoto sstv encode photo.png -m pd90 -o pd90.wav
 SSTV audio generated: pd90.wav
   Mode: PD 90
   Resolution: 320x256
@@ -876,14 +885,14 @@ SSTV audio generated: pd90.wav
   Resize: fit
 
 # 6. 解码 WAV 音频
-$ komitoto calc sstv decode cq_m1.wav -m m1 -o decoded.png
+$ komitoto sstv decode cq_m1.wav -m m1 -o decoded.png
 SSTV decoded: decoded.png
   Mode: Martin M1
   Resolution: 320x256
   Audio: cq_m1.wav
 
 # 7. 解码 MP3 音频（自动重采样 44100→11025 Hz）
-$ komitoto calc sstv decode received.mp3 -m m1 -o from_mp3.png
+$ komitoto sstv decode received.mp3 -m m1 -o from_mp3.png
 SSTV decoded: from_mp3.png
   Mode: Martin M1
   Resolution: 320x256
@@ -891,29 +900,29 @@ SSTV decoded: from_mp3.png
 
 # 8. 批量编码不同模式
 $ for m in m1 m2 s1 s2 r36; do
-    komitoto calc sstv encode test.png -m $m -o test_$m.wav
+    komitoto sstv encode test.png -m $m -o test_$m.wav
   done
 
 # 9. 编码后转换为 MP3 传输
-$ komitoto calc sstv encode photo.png -m m1 -o photo.wav
+$ komitoto sstv encode photo.png -m m1 -o photo.wav
 $ ffmpeg -i photo.wav -codec:a libmp3lame -qscale:a 2 photo.mp3
 
 # 10. 错误处理示例
 
 # 文件不存在
-$ komitoto calc sstv encode missing.png -m m1
+$ komitoto sstv encode missing.png -m m1
 Error: Image file not found: missing.png
 
 # 不支持的图像格式
-$ komitoto calc sstv encode doc.txt -m m1
+$ komitoto sstv encode doc.txt -m m1
 Error: Unsupported image format: txt (supported: png, jpg, jpeg, bmp, gif, webp, tiff, tif)
 
 # 不支持的音频格式
-$ komitoto calc sstv decode audio.flac -m m1
+$ komitoto sstv decode audio.flac -m m1
 Error: Unsupported audio format: flac (supported: wav, mp3)
 
 # 无效模式
-$ komitoto calc sstv encode photo.png -m badmode
+$ komitoto sstv encode photo.png -m badmode
 Error: Unknown SSTV mode: 'badmode'. Use --list to see available modes.
 ```
 
@@ -921,10 +930,10 @@ Error: Unknown SSTV mode: 'badmode'. Use --list to see available modes.
 
 | 场景 | 推荐模式 | 命令 |
 |------|----------|------|
-| HF 通联（高质量） | Martin M1 | `komitoto calc sstv encode photo.png -m m1` |
-| HF 通联（快速） | Martin M2 | `komitoto calc sstv encode photo.png -m m2` |
-| VHF/UHF 通联 | Robot 36 | `komitoto calc sstv encode photo.png -m r36` |
-| 宽频带、高质量 | PD 90/120 | `komitoto calc sstv encode photo.png -m pd90` |
+| HF 通联（高质量） | Martin M1 | `komitoto sstv encode photo.png -m m1` |
+| HF 通联（快速） | Martin M2 | `komitoto sstv encode photo.png -m m2` |
+| VHF/UHF 通联 | Robot 36 | `komitoto sstv encode photo.png -m r36` |
+| 宽频带、高质量 | PD 90/120 | `komitoto sstv encode photo.png -m pd90` |
 
 **encode 选项：**
 
@@ -942,6 +951,289 @@ Error: Unknown SSTV mode: 'badmode'. Use --list to see available modes.
 | `<audio>` | | (必需) | 输入音频文件 (wav, mp3) |
 | `--output` | `-o` | `<audio_stem>.png` | 输出图像文件路径 |
 | `--mode` | `-m` | `martinm1` | SSTV 模式 (或 auto) |
+
+### `komitoto ssdv` — SSDV 慢扫描数字视频
+
+将 JPEG 图像编码为 SSDV 数据包，或将 SSDV 数据包解码为 JPEG 图像。SSDV 是一种基于数据包的数字图像传输协议，支持 CRC32 校验和 Reed-Solomon 前向纠错（FEC）。
+
+**命令：**
+
+| 子命令 | 说明 |
+|--------|------|
+| `encode` | 将图像编码为 SSDV 数据包（支持 JPEG/PNG/BMP 等，自动转换） |
+| `decode` | 将 SSDV 数据包解码为 JPEG 图像 |
+| `info`   | 显示 SSDV 数据包头部信息 |
+
+#### `komitoto ssdv encode`
+
+```bash
+komitoto ssdv encode <IMAGE> [OPTIONS]
+```
+
+选项：
+
+| 选项 | 简写 | 默认值 | 说明 |
+|------|------|--------|------|
+| `<image>` | | (必需) | 输入图像文件 (JPEG 直接使用，其他格式自动转换) |
+| `--output` | `-o` | `<input>.bin` | 输出二进制文件路径 |
+| `--callsign` | `-c` | (必需) | 呼号，最长 6 字符 (A-Z 0-9) |
+| `--id` | `-i` | `0` | 图像 ID (0-255) |
+| `--quality` | `-q` | `4` | 质量等级 (0-7) |
+| `--no-fec` | `-n` | 否 | 禁用前向纠错 (NOFEC 模式) |
+| `--pkt-size` | `-l` | `256` | 数据包大小，最大 256 |
+
+示例：
+
+```bash
+# 编码 JPEG 为 SSDV 数据包
+komitoto ssdv encode photo.jpg -c BD7ACE -o photo.bin
+
+# 编码 PNG 图像（自动转换为 JPEG）
+komitoto ssdv encode photo.png -c BD7ACE -o photo.bin
+
+# 指定图像 ID 和质量
+komitoto ssdv encode photo.jpg -c BD7ACE -i 42 -q 6 -o photo.bin
+
+# 无 FEC 模式（数据包更小，但无法纠错）
+komitoto ssdv encode photo.jpg -c BD7ACE --no-fec -o photo_nofec.bin
+```
+
+#### `komitoto ssdv decode`
+
+```bash
+komitoto ssdv decode <INPUT> [OPTIONS]
+```
+
+选项：
+
+| 选项 | 简写 | 默认值 | 说明 |
+|------|------|--------|------|
+| `<input>` | | (必需) | 输入 SSDV 二进制文件 |
+| `--output` | `-o` | `<input>.jpeg` | 输出 JPEG 文件路径 |
+| `--verbose` | `-v` | 否 | 打印每个数据包的详细信息 |
+| `--drop` | `-t` | 否 | 丢包测试：随机丢弃 N% 的数据包 (0-100) |
+| `--pkt-size` | `-l` | `256` | 数据包大小 |
+
+示例：
+
+```bash
+# 解码 SSDV 数据包为 JPEG
+komitoto ssdv decode photo.bin -o decoded.jpeg
+
+# 详细模式（显示每个数据包信息）
+komitoto ssdv decode photo.bin -v -o decoded.jpeg
+
+# 丢包测试（模拟 10% 丢包率，测试 FEC 纠错能力）
+komitoto ssdv decode photo.bin -t 10 -o decoded_10pct.jpeg
+
+# 高丢包率测试（30% 丢包，仍可部分恢复）
+komitoto ssdv decode photo.bin -t 30 -o decoded_30pct.jpeg
+```
+
+#### `komitoto ssdv info`
+
+```bash
+komitoto ssdv info <INPUT> [OPTIONS]
+```
+
+选项：
+
+| 选项 | 简写 | 默认值 | 说明 |
+|------|------|--------|------|
+| `<input>` | | (必需) | 输入 SSDV 二进制文件 |
+| `--pkt-size` | `-l` | `256` | 数据包大小 |
+
+示例：
+
+```bash
+# 查看数据包信息
+komitoto ssdv info photo.bin
+Callsign: BD7ACE
+Image ID: 0
+Resolution: 320x240
+MCU Count: 1200 (20x50)
+Quality: 4
+Type: Normal (FEC enabled)
+
+# 不同数据包大小
+komitoto ssdv info photo.bin -l 128
+```
+
+**SSDV vs SSTV 对比：**
+
+| 特性 | SSTV | SSDV |
+|------|------|------|
+| 传输方式 | 模拟音频 | 数字数据包 |
+| 纠错 | 无 | CRC32 + RS(255,223) FEC |
+| 丢包影响 | 噪声干扰 | 缺失 MCU 区域灰块填充 |
+| 呼号标识 | 无 | Base-40 编码嵌入包头 |
+| 输入格式 | 任意图像 | 任意图像（自动转 JPEG） |
+| 输出格式 | WAV 音频 | 二进制数据包 |
+
+#### `komitoto tools wavelength`
+
+根据频率计算波长。公式：λ = c / f（c = 299,792,458 m/s）。
+
+```bash
+komitoto tools wavelength --freq <FREQ_MHZ>
+```
+
+选项：
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `--freq` | 频率 (MHz) **必填** | - |
+| `--json` | 以 JSON 格式输出 | 否 |
+
+示例：
+
+```bash
+# 20m 波段频率
+komitoto tools wavelength --freq 14.1
+Frequency: 14.1 MHz
+Wavelength: 21.261876 m
+Band: 20m
+
+# UHF 频率
+komitoto tools wavelength --freq 438.5
+Frequency: 438.5 MHz
+Wavelength: 0.683816 m
+Band: 70cm
+
+# JSON 输出
+komitoto tools wavelength --freq 14.1 --json
+{
+  "frequency_mhz": 14.1,
+  "wavelength_m": 21.261876,
+  "band": "20m"
+}
+
+# 不在业余频段的频率（无 band 信息）
+komitoto tools wavelength --freq 100
+Frequency: 100 MHz
+Wavelength: 2.997925 m
+
+# 错误处理：零频率
+komitoto tools wavelength --freq 0
+Error: Frequency must be positive
+
+# 错误处理：负频率
+komitoto tools wavelength --freq=-14.1
+Error: Frequency must be positive
+```
+
+#### `komitoto tools frequency`
+
+根据波长计算频率。公式：f = c / λ（c = 299,792,458 m/s）。
+
+```bash
+komitoto tools frequency --wavelength <WAVELENGTH_M>
+```
+
+选项：
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `--wavelength` | 波长 (米) **必填** | - |
+| `--json` | 以 JSON 格式输出 | 否 |
+
+示例：
+
+```bash
+# 2m 波长
+komitoto tools frequency --wavelength 2
+Wavelength: 2 m
+Frequency: 149.896229 MHz
+
+# 70cm 波长
+komitoto tools frequency --wavelength 0.7
+Wavelength: 0.7 m
+Frequency: 428.274940 MHz
+Band: 70cm
+
+# 20m 波长
+komitoto tools frequency --wavelength 20
+Wavelength: 20 m
+Frequency: 14.989623 MHz
+Band: 20m
+
+# JSON 输出
+komitoto tools frequency --wavelength 0.7 --json
+{
+  "wavelength_m": 0.7,
+  "frequency_mhz": 428.274940,
+  "band": "70cm"
+}
+
+# 错误处理：零波长
+komitoto tools frequency --wavelength 0
+Error: Wavelength must be positive
+
+# 错误处理：负波长
+komitoto tools frequency --wavelength=-2
+Error: Wavelength must be positive
+```
+
+#### `komitoto tools callsign`
+
+验证业余无线电呼号并显示详细信息。支持 ITU 格式呼号验证、Base-40 编码值（SSDV 使用的编码）和 ITU 前缀识别。
+
+```bash
+komitoto tools callsign <CALLSIGN>
+```
+
+选项：
+
+| 选项 | 简写 | 说明 |
+|------|------|------|
+| `<callsign>` | | 呼号 (如 BD7ACE, W1AW, JA1AA) **必填** |
+| `--json` | `-j` | 以 JSON 格式输出 |
+
+呼号格式规则（ITU 业余无线电格式）：
+- 前缀：1-2 个字母
+- 数字：1 位
+- 后缀：1-3 个字母
+
+示例：
+
+```bash
+# 验证中国呼号
+komitoto tools callsign BD7ACE
+Callsign: BD7ACE
+Valid: yes
+Base-40: 64058829
+ITU Prefix: BD → China
+
+# 验证美国呼号
+komitoto tools callsign W1AW
+Callsign: W1AW
+Valid: yes
+Base-40: 615831
+ITU Prefix: W → United States of America
+
+# 验证日本呼号
+komitoto tools callsign JA1AA
+Callsign: JA1AA
+Valid: yes
+Base-40: 584081
+ITU Prefix: JA → Japan
+
+# 无效呼号
+komitoto tools callsign INVALID
+Callsign: INVALID
+Valid: no
+Reason: callsign does not match ITU amateur radio format
+
+# JSON 输出
+komitoto tools callsign BD7ACE --json
+{
+  "callsign": "BD7ACE",
+  "valid": true,
+  "base40": 64058829,
+  "itu_prefix": "BD",
+  "itu_country": "China"
+}
+```
 
 ---
 
@@ -1038,13 +1330,12 @@ komitoto sat
 komitoto rotator
 
 # 未实现的网格计算
-komitoto calc grid --lat --lon
+komitoto tools grid --lat --lon
 
-# 未实现的频率计算器
-komitoto calc freq
+# 未实现的波长/频率计算器（已实现为 wavelength 和 frequency 子命令）
 
 # 未实现的多普勒计算器
-komitoto calc doppler
+komitoto tools doppler
 
 # 旧的搜索命令格式（已被部分 ID 匹配取代）
 komitoto log search --call "BI3*"
@@ -1063,6 +1354,15 @@ komitoto log search --call "BI3*"
 - **sunrise** - 天文计算
 - **uuid** - UUID 生成
 - **lazy_static** - 全局变量缓存
+- **crc32fast** - SSDV CRC32 校验
+
+---
+
+## 致谢 / 参考项目
+
+- [QSSTV](https://github.com/ON4QZ/QSSTV) — SSTV 编解码参考实现
+- [robot36](https://github.com/xdsopl/robot36) — Robot 36 SSTV 模式参考
+- [ssdv](https://github.com/fsphil/ssdv) — SSDV 编解码参考实现（Philip Heron 的 C 原版）
 
 ---
 
