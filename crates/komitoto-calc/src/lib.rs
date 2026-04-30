@@ -17,15 +17,20 @@ pub mod sunrise {
         altitude: f64,
         dawn_type: Option<DawnType>,
     ) -> Result<SunTimes, Box<dyn std::error::Error>> {
-        let coord = Coordinates::new(lat, lon).unwrap();
+        let coord = Coordinates::new(lat, lon)
+            .ok_or("Invalid coordinates")?;
         let occasion = SolarDay::new(coord, date).with_altitude(altitude);
 
-        let sunrise = occasion.event_time(SolarEvent::Sunrise).unwrap();
-        let sunset = occasion.event_time(SolarEvent::Sunset).unwrap();
+        let sunrise = occasion.event_time(SolarEvent::Sunrise)
+            .ok_or("Sunrise event does not occur at this location and date (polar day/night)")?;
+        let sunset = occasion.event_time(SolarEvent::Sunset)
+            .ok_or("Sunset event does not occur at this location and date (polar day/night)")?;
 
         let actual_dawn_type = dawn_type.unwrap_or(DawnType::Civil);
-        let dawn = occasion.event_time(SolarEvent::Dawn(actual_dawn_type)).unwrap();
-        let dusk = occasion.event_time(SolarEvent::Dusk(actual_dawn_type)).unwrap();
+        let dawn = occasion.event_time(SolarEvent::Dawn(actual_dawn_type))
+            .ok_or("Dawn event does not occur at this location and date (polar day/night)")?;
+        let dusk = occasion.event_time(SolarEvent::Dusk(actual_dawn_type))
+            .ok_or("Dusk event does not occur at this location and date (polar day/night)")?;
 
         Ok(SunTimes {
             sunrise,
