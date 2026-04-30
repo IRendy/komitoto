@@ -900,6 +900,86 @@ fn run_sstv(action: SstvAction) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Ensure JPEG has two DQT tables for 3-channel images by inserting
+/// a copy of the first table with id=1 if only one table is present.
+fn ensure_ssdv_compatible_jpeg(jpeg_data: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut markers = Vec::new();
+    let mut i = 0;
+    while i < jpeg_data.len() {
+        if jpeg_data[i] != 0xFF {
+            i += 1;
+            continue;
+        }
+        if i + 1 >= jpeg_data.len() {
+            break;
+        }
+        let marker = jpeg_data[i + 1];
+        if marker == 0x00 || marker == 0xFF {
+            i += 2;
+            continue;
+        }
+        // Standalone markers
+        if marker == 0xD8 || marker == 0xD9 || (0xD0 <= marker && marker <= 0xD9) {
+            markers.push((i, marker, 0usize));
+            i += 2;
+            continue;
+        }
+        if i + 3 >= jpeg_data.len() {
+            break;
+        }
+        let len = ((jpeg_data[i + 2] as usize) << 8) | (jpeg_data[i + 3] as usize);
+        markers.push((i, marker, len));
+        i += 2 + len;
+    }
+
+    // Find DQT markers and count tables, find SOF0 for component count
+    let mut dqt_count = 0;
+    let mut components = 0;
+    let mut first_dqt_end = 0;
+    let mut first_dqt_data = Vec::new();
+
+    for &(offset, marker, len) in &markers {
+        if marker == 0xDB {
+            // DQT marker data starts at offset+4, length is 'len' (includes the 2-byte length field)
+            let payload = &jpeg_data[offset + 4..offset + 2 + len];
+            let mut off = 0;
+            while off + 65 <= payload.len() {
+                let table_id = payload[off] & 0x0F;
+                if dqt_count == 0 {
+                    first_dqt_end = offset + 2 + len;
+                    first_dqt_data = payload[off..off + 65].to_vec();
+                }
+                if table_id == dqt_count {
+                    dqt_count += 1;
+                }
+                off += 65;
+            }
+        }
+        if marker == 0xC0 {
+            // SOF0: component count is at offset+4+5
+            if offset + 4 + 5 < jpeg_data.len() {
+                components = jpeg_data[offset + 4 + 5];
+            }
+        }
+    }
+
+    if components > 1 && dqt_count < 2 && !first_dqt_data.is_empty() {
+        // Insert a second DQT table right after the first DQT marker
+        let mut new_jpeg = Vec::with_capacity(jpeg_data.len() + 67);
+        new_jpeg.extend_from_slice(&jpeg_data[..first_dqt_end]);
+        new_jpeg.push(0xFF);
+        new_jpeg.push(0xDB);
+        new_jpeg.push(0x00);
+        new_jpeg.push(0x43); // length = 67
+        first_dqt_data[0] = (first_dqt_data[0] & 0xF0) | 0x01; // set table id to 1
+        new_jpeg.extend_from_slice(&first_dqt_data);
+        new_jpeg.extend_from_slice(&jpeg_data[first_dqt_end..]);
+        return Ok(new_jpeg);
+    }
+
+    Ok(jpeg_data)
+}
+
 /// Run SSDV commands
 fn run_ssdv(action: SsdvAction) -> Result<(), Box<dyn Error>> {
     use komitoto_ssdv::{SsdvEncoder, SsdvDecoder, PacketType};
@@ -912,17 +992,52 @@ fn run_ssdv(action: SsdvAction) -> Result<(), Box<dyn Error>> {
 
             let raw_data = std::fs::read(&image)?;
 
-            // If already JPEG, use directly; otherwise convert via image crate
+            // Always re-encode through image crate to ensure dimensions are
+            // multiples of 16 and format is standard baseline JPEG.
             let jpeg_data = if raw_data.len() >= 2 && raw_data[0] == 0xFF && raw_data[1] == 0xD8 {
-                raw_data
-            } else {
                 let img = image::open(&image)
                     .map_err(|e| format!("Failed to open image '{}': {}", image, e))?;
+                let (w, h) = (img.width(), img.height());
+                let new_w = (w / 16) * 16;
+                let new_h = (h / 16) * 16;
+                if new_w == 0 || new_h == 0 {
+                    return Err("Image dimensions too small after alignment".into());
+                }
+                let img = if w != new_w || h != new_h {
+                    println!("  Resized {} from {}x{} to {}x{} (16-pixel aligned)", image, w, h, new_w, new_h);
+                    img.resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3)
+                } else {
+                    img
+                };
+                let img = img.to_rgb8();
                 let mut buf = std::io::Cursor::new(Vec::new());
                 img.write_to(&mut buf, image::ImageFormat::Jpeg)
                     .map_err(|e| format!("Failed to convert to JPEG: {}", e))?;
+                let jpeg = buf.into_inner();
+                println!("  Re-encoded {} to baseline JPEG for SSDV compatibility", image);
+                ensure_ssdv_compatible_jpeg(jpeg)?
+            } else {
+                let img = image::open(&image)
+                    .map_err(|e| format!("Failed to open image '{}': {}", image, e))?;
+                let (w, h) = (img.width(), img.height());
+                let new_w = (w / 16) * 16;
+                let new_h = (h / 16) * 16;
+                if new_w == 0 || new_h == 0 {
+                    return Err("Image dimensions too small after alignment".into());
+                }
+                let img = if w != new_w || h != new_h {
+                    println!("  Resized {} from {}x{} to {}x{} (16-pixel aligned)", image, w, h, new_w, new_h);
+                    img.resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3)
+                } else {
+                    img
+                };
+                let img = img.to_rgb8();
+                let mut buf = std::io::Cursor::new(Vec::new());
+                img.write_to(&mut buf, image::ImageFormat::Jpeg)
+                    .map_err(|e| format!("Failed to convert to JPEG: {}", e))?;
+                let jpeg = buf.into_inner();
                 println!("  Converted {} to JPEG for SSDV encoding", image);
-                buf.into_inner()
+                ensure_ssdv_compatible_jpeg(jpeg)?
             };
 
             // Validate callsign

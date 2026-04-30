@@ -1006,7 +1006,7 @@ komitoto ssdv encode <IMAGE> [OPTIONS]
 
 | 选项 | 简写 | 默认值 | 说明 |
 |------|------|--------|------|
-| `<image>` | | (必需) | 输入图像文件 (JPEG 直接使用，其他格式自动转换) |
+| `<image>` | | (必需) | 输入图像文件（任意格式，自动转换为兼容 JPEG） |
 | `--output` | `-o` | `<input>.bin` | 输出二进制文件路径 |
 | `--callsign` | `-c` | (必需) | 呼号，最长 6 字符 (A-Z 0-9) |
 | `--id` | `-i` | `0` | 图像 ID (0-255) |
@@ -1014,13 +1014,23 @@ komitoto ssdv encode <IMAGE> [OPTIONS]
 | `--no-fec` | `-n` | 否 | 禁用前向纠错 (NOFEC 模式) |
 | `--pkt-size` | `-l` | `256` | 数据包大小，最大 256 |
 
+**编码要求与自动处理：**
+
+SSDV 协议对原始 JPEG 有严格限制。`komitoto` 会在编码前自动处理以下事项：
+
+- **尺寸对齐**：宽高自动调整为 **16 的倍数**（最大 4080×4080）
+- **格式转换**：非 JPEG 文件自动转为 Baseline JPEG
+- **颜色通道**：RGBA 等格式自动转为 RGB；灰度图保持 1 通道
+- **量化表修复**：自动确保 3 通道彩色图像包含 2 个 DQT 量化表
+- **MCU 限制**：总 MCU 块数不得超过 65535
+
 示例：
 
 ```bash
 # 编码 JPEG 为 SSDV 数据包
 komitoto ssdv encode photo.jpg -c BD7ACE -o photo.bin
 
-# 编码 PNG 图像（自动转换为 JPEG）
+# 编码 PNG 图像（自动转换并处理为兼容 JPEG）
 komitoto ssdv encode photo.png -c BD7ACE -o photo.bin
 
 # 指定图像 ID 和质量
