@@ -2,7 +2,11 @@ name: Publish to AUR
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths-ignore:
+      - ".github/**"
+      - ".gitignore"
+      - "**/*.md"
   workflow_dispatch:
 
 jobs:
@@ -19,9 +23,19 @@ jobs:
           VERSION=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Create tag if not exists
+        run: |
+          git fetch --tags
+          if git tag -l "v${{ steps.version.outputs.version }}" | grep -q .; then
+            echo "Tag v${{ steps.version.outputs.version }} already exists, skipping"
+          else
+            git tag "v${{ steps.version.outputs.version }}"
+            git push origin "v${{ steps.version.outputs.version }}"
+          fi
+
       - name: Generate PKGBUILD
         run: |
-          cat > PKGBUILD << PKGBUILD_EOF
+          cat > PKGBUILD << 'PKGBUILD_EOF'
           # Maintainer: IRendy <irendy@qq.com>
 
           pkgname="komitoto"
@@ -35,48 +49,40 @@ jobs:
 
           makedepends=(
             'cargo'
-            'git'
             'sqlite'
           )
           depends=('gcc-libs' 'sqlite')
-          source=("git+\$url.git#tag=v${{ steps.version.outputs.version }}")
+          source=("$url/archive/refs/tags/v$pkgver.tar.gz")
           sha256sums=('SKIP')
 
-          pkgver() {
-            cd "\$pkgname"
-            sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1
-          }
-
           prepare() {
-            cd "\$pkgname"
+            cd "$pkgname-$pkgver"
 
             # Use system SQLite instead of bundled
             sed -i 's/features = \["bundled"\]/features = []/' Cargo.toml
             cargo update
 
-            cargo fetch --locked --target "\$(rustc -vV | sed -n 's/host: \(.*\)/\1/p')"
+            cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: \(.*\)/\1/p')"
           }
 
           build() {
-            cd "\$pkgname"
+            cd "$pkgname-$pkgver"
             export SQLITE3_LIB_DIR="/usr/lib"
             export SQLITE3_INCLUDE_DIR="/usr/include"
-            export RUSTFLAGS+=" --remap-path-prefix=\$srcdir=/ "
+            export RUSTFLAGS+=" --remap-path-prefix=$srcdir=/ "
             cargo build --release --locked --target-dir target
           }
 
           check() {
-            cd "\$pkgname"
+            cd "$pkgname-$pkgver"
             export SQLITE3_LIB_DIR="/usr/lib"
             export SQLITE3_INCLUDE_DIR="/usr/include"
             cargo test --release --locked
           }
 
           package() {
-            cd "\$pkgname"
-
-            install -Dm755 "target/release/\$pkgname" "\$pkgdir/usr/bin/\$pkgname"
-
+            cd "$pkgname-$pkgver"
+            install -Dm755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
           }
           PKGBUILD_EOF
 
@@ -92,11 +98,10 @@ jobs:
           	arch = aarch64
           	license = MIT
           	makedepends = cargo
-          	makedepends = git
           	makedepends = sqlite
           	depends = gcc-libs
           	depends = sqlite
-          	source = git+https://github.com/IRendy/komitoto.git#tag=v${{ steps.version.outputs.version }}
+          	source = https://github.com/IRendy/komitoto/archive/refs/tags/v${{ steps.version.outputs.version }}.tar.gz
           	sha256sums = SKIP
 
           pkgname = komitoto
